@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Inmobiliario Profesional</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="max-w-7xl mx-auto p-6">
+        <header class="mb-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+            <h1 class="text-2xl font-bold text-gray-800">Gestión Inmobiliaria</h1>
+            <span id="status-conexion" class="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Conectando con Supabase...</span>
+        </header>
+
+        <!-- Contenedor principal -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Sección Propiedades -->
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Propiedades Registradas</h2>
+                <div id="lista-propiedades" class="space-y-3">
+                    <p class="text-gray-500 text-sm">Cargando propiedades...</p>
+                </div>
+            </div>
+
+            <!-- Sección Clientes / Prospectos -->
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">Prospectos y Clientes</h2>
+                <div id="lista-clientes" class="space-y-3">
+                    <p class="text-gray-500 text-sm">Cargando clientes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN DE SUPABASE (CONFIGURADO)
+        // ==========================================
+        const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ViwJySJyxqO9N_H4LTirQ_3j5yUyY_dZ42q';
+        // ==========================================
+
+        const { createClient } = supabase;
+        let db = null;
+
+        try {
+            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            document.getElementById('status-conexion').innerText = 'Conectado a Supabase';
+            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-green-100 text-green-800';
+            cargarDatos();
+        } catch (e) {
+            document.getElementById('status-conexion').innerText = 'Error de conexión';
+            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-red-100 text-red-850';
+        }
+
+        async function cargarDatos() {
+            // Cargar Propiedades
+            const { data: props, error: errProps } = await db.from('propiedades').select('*');
+            const divProps = document.getElementById('lista-propiedades');
+            if (errProps) {
+                divProps.innerHTML = `<p class="text-red-500 text-sm">Error al cargar propiedades: ${errProps.message}</p>`;
+            } else if (props.length === 0) {
+                divProps.innerHTML = `<p class="text-gray-500 text-sm">No hay propiedades registradas aún.</p>`;
+            } else {
+                divProps.innerHTML = props.map(p => `
+                    <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-800">${p.nombre}</p>
+                            <p class="text-xs text-gray-500">${p.ubicacion || 'Sin ubicación'} - ${p.precio || 'Sin precio'}</p>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${p.estado}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Cargar Clientes
+            const { data: clients, error: errClients } = await db.from('clientes').select('*');
+            const divClients = document.getElementById('lista-clientes');
+            if (errClients) {
+                divClients.innerHTML = `<p class="text-red-500 text-sm">Error al cargar clientes: ${errClients.message}</p>`;
+            } else if (clients.length === 0) {
+                divClients.innerHTML = `<p class="text-gray-500 text-sm">No hay clientes registrados aún.</p>`;
+            } else {
+                divClients.innerHTML = clients.map(c => `
+                    <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-800">${c.nombre}</p>
+                            <p class="text-xs text-gray-500">${c.telefono || 'Sin teléfono'} - ${c.email || ''}</p>
+                        </div>
+                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">${c.estado}</span>
+                    </div>
+                `).join('');
+            }
+        }
+    </script>
+</body>
+</html>
