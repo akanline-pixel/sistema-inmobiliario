@@ -1,431 +1,137 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Inmobiliaria Profesional</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-gray-100 font-sans min-h-screen pb-12">
+// ==========================================
+// MÓDULO DE GESTIÓN DE ESTADOS E HISTORIAL DE VENTAS
+// ==========================================
 
-    <!-- MENÚ DE NAVEGACIÓN SUPERIOR -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">🏠 Sistema Inmobiliario</h1>
-            <nav class="flex space-x-3">
-                <button onclick="cambiarVista('catalogo')" id="btn-catalogo" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition">Catálogo de Propiedades</button>
-                <button onclick="cambiarVista('registros')" id="btn-registros" class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Registros / Formularios</button>
-            </nav>
-        </div>
-    </header>
+// Lista oficial de etapas para el proceso de ventas
+const ETAPAS_VENTA = [
+    'Nuevo Lead / Contacto inicial',
+    'Cualificación Financiera',
+    'Visita Agendada',
+    'Oferta / Reserva',
+    'Cierre / Promesa'
+];
 
-    <main class="max-w-7xl mx-auto p-6">
+// 1. Función para cambiar el estado y registrar el movimiento con fecha/hora
+async function cambiarEstadoCliente(clienteId, estadoActual, nuevoEstado, observacion = '') {
+    try {
+        // Actualizar el estado actual en la tabla clientes
+        const { error: errUp } = await db
+            .from('clientes')
+            .update({ estado_prospecto: nuevoEstado })
+            .eq('id', clienteId);
 
-        <!-- ========================================== -->
-        <!-- VISTA 1: CATÁLOGO DE PROPIEDADES -->
-        <!-- ========================================== -->
-        <section id="vista-catalogo">
-            <div id="contenedor-catalogo" class="space-y-6">
-                <!-- Se llena dinámicamente -->
-                <p class="text-gray-500 text-sm">Cargando propiedades...</p>
-            </div>
-        </section>
+        if (errUp) throw errUp;
 
-        <!-- ========================================== -->
-        <!-- VISTA 2: REGISTROS Y FORMULARIOS (CREAR / EDITAR) -->
-        <!-- ========================================== -->
-        <section id="vista-registros" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                <!-- Formulario de Propiedades -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-600">
-                    <h2 id="form-prop-titulo" class="text-lg font-semibold mb-4 text-gray-800">➕ Ingresar Nueva Propiedad</h2>
-                    <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-3">
-                        <input type="hidden" id="prop-edit-id">
-                        
-                        <input type="text" id="prop-nombre" placeholder="Título (ej: Parcela Lomas Coloradas)" required class="w-full p-2 border rounded text-sm">
-                        <input type="text" id="prop-ubicacion" placeholder="Ubicación (ej: San Pedro de la Paz)" required class="w-full p-2 border rounded text-sm">
-                        <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000 o $450.000)" required class="w-full p-2 border rounded text-sm">
-                        
-                        <select id="prop-operacion" class="w-full p-2 border rounded text-sm bg-white" required>
-                            <option value="Venta">Venta</option>
-                            <option value="Arriendo">Arriendo</option>
-                            <option value="Venta o Arriendo">Venta o Arriendo</option>
-                        </select>
+        // Registrar el salto en el historial con timestamp del servidor
+        const { error: errHist } = await db
+            .from('historial_estados')
+            .insert([{
+                cliente_id: clienteId,
+                estado_anterior: estadoActual || 'Inicio',
+                estado_nuevo: nuevoEstado,
+                tipo_proceso: 'venta',
+                observacion: observacion
+            }]);
 
-                        <textarea id="prop-descripcion" placeholder="Descripción detallada de la propiedad..." rows="3" class="w-full p-2 border rounded text-sm"></textarea>
-                        
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Foto de referencia (Archivo):</label>
-                            <input type="file" id="prop-file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                            <p class="text-[11px] text-gray-400 mt-1">Si editas y no seleccionas archivo, se mantendrá la foto actual.</p>
-                        </div>
+        if (errHist) throw errHist;
 
-                        <select id="prop-estado" class="w-full p-2 border rounded text-sm bg-white">
-                            <option value="Disponible">Disponible</option>
-                            <option value="Reservada">Reservada</option>
-                            <option value="Vendida">Vendida</option>
-                            <option value="Arrendada">Arrendada</option>
-                            <option value="Baja">Dar de Baja (Inactiva)</option>
-                        </select>
+        // Recargar la vista de detalles y la lista general
+        alert('¡Estado actualizado y registrado en el historial!');
+        abrirDetalleCliente(clienteId); 
+        if (typeof cargarClientes === 'function') cargarClientes();
 
-                        <div id="contenedor-motivo" class="hidden">
-                            <input type="text" id="prop-motivo-baja" placeholder="Motivo de la baja (ej: Se vendió de forma particular)" class="w-full p-2 border rounded text-sm bg-red-50 border-red-200 text-red-700">
-                        </div>
+    } catch (error) {
+        console.error('Error al cambiar estado:', error.message);
+        alert('No se pudo guardar el cambio de estado.');
+    }
+}
 
-                        <div class="flex space-x-2">
-                            <button type="submit" id="btn-guardar-prop" class="flex-1 bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
-                            <button type="button" id="btn-cancelar-edicion" onclick="resetearFormularioPropiedad()" class="hidden bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-400 transition">Cancelar</button>
-                        </div>
-                    </form>
-                </div>
+// 2. Función para renderizar la interfaz de detalles, selector de estados y bitácora
+async function abrirDetalleCliente(clienteId) {
+    // Obtener datos del cliente
+    const { data: cliente, error: errCli } = await db
+        .from('clientes')
+        .select('*')
+        .eq('id', clienteId)
+        .single();
 
-                <!-- Formulario de Prospectos -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-purple-600">
-                    <h2 class="text-lg font-semibold mb-4 text-gray-800">➕ Registrar Prospecto / Cliente</h2>
-                    <form id="form-cliente" onsubmit="guardarCliente(event)" class="space-y-3">
-                        <input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required class="w-full p-2 border rounded text-sm">
-                        <input type="text" id="cli-telefono" placeholder="Teléfono (ej: +569...)" required class="w-full p-2 border rounded text-sm">
-                        <input type="email" id="cli-email" placeholder="Correo electrónico" class="w-full p-2 border rounded text-sm">
-                        
-                        <select id="cli-propiedad-id" required class="w-full p-2 border rounded text-sm bg-white">
-                            <option value="">Seleccione la propiedad de interés...</option>
-                        </select>
+    if (errCli) {
+        console.error('Error al cargar cliente:', errCli);
+        return;
+    }
 
-                        <select id="cli-estado" class="w-full p-2 border rounded text-sm bg-white">
-                            <option value="Nuevo Prospecto">Nuevo Prospecto</option>
-                            <option value="En Negociación">En Negociación</option>
-                            <option value="Cerrado">Cerrado</option>
-                        </select>
-                        <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded text-sm font-medium hover:bg-purple-700 transition">Vincular Prospecto</button>
-                    </form>
-                </div>
+    // Obtener el historial cronológico de este cliente
+    const { data: historial, error: errHist } = await db
+        .from('historial_estados')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false });
 
-            </div>
-        </section>
+    if (errHist) console.error('Error al cargar historial:', errHist);
 
-    </main>
+    // Construir las opciones del selector de estados
+    let opcionesHTML = ETAPAS_VENTA.map(etapa => {
+        const selected = cliente.estado_prospecto === etapa ? 'selected' : '';
+        return `<option value="${etapa}" ${selected}>${etapa}</option>`;
+    }).join('');
 
-    <script>
-        // ==========================================
-        // CONFIGURACIÓN DE SUPABASE
-        // ==========================================
-        const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ViwJySJyxq0o9N_Hl4IirQ_3j5yUv5p';
-        // ==========================================
-
-        const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let vistaActual = 'catalogo';
-        let propiedadSeleccionadaId = null;
-
-        document.addEventListener("DOMContentLoaded", () => {
-            cargarDatosGlobales();
-
-            // Mostrar u ocultar campo de motivo de baja según el estado seleccionado
-            document.getElementById('prop-estado').addEventListener('change', function() {
-                const contenedorMotivo = document.getElementById('contenedor-motivo');
-                if (this.value === 'Baja') {
-                    contenedorMotivo.classList.remove('hidden');
-                    document.getElementById('prop-motivo-baja').required = true;
-                } else {
-                    contenedorMotivo.classList.add('hidden');
-                    document.getElementById('prop-motivo-baja').required = false;
-                    document.getElementById('prop-motivo-baja').value = '';
-                }
+    // Construir la lista visual del historial con fechas legibles
+    let historialHTML = '';
+    if (historial && historial.length > 0) {
+        historialHTML = historial.map(h => {
+            const fechaFormateada = new Date(h.created_at).toLocaleString('es-CL', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
             });
-        });
-
-        // Control de Pestañas
-        function cambiarVista(vista) {
-            vistaActual = vista;
-            const vCat = document.getElementById('vista-catalogo');
-            const vReg = document.getElementById('vista-registros');
-            const bCat = document.getElementById('btn-catalogo');
-            const bReg = document.getElementById('btn-registros');
-
-            if (vista === 'catalogo') {
-                vCat.classList.remove('hidden');
-                vReg.classList.add('hidden');
-                bCat.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition";
-                bReg.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
-                propiedadSeleccionadaId = null;
-                cargarDatosGlobales();
-            } else {
-                vCat.classList.add('hidden');
-                vReg.classList.remove('hidden');
-                bReg.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition";
-                bCat.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
-            }
-        }
-
-        async function cargarDatosGlobales() {
-            const { data: propiedades } = await db.from('propiedades').select('*').order('id', { ascending: false });
-            const { data: clientes } = await db.from('clientes').select('*').order('id', { ascending: false });
-
-            // Llenar selector de la página 2 (solo propiedades activas o disponibles para clientes)
-            const selectProp = document.getElementById('cli-propiedad-id');
-            if (propiedades) {
-                const activas = propiedades.filter(p => p.estado !== 'Baja');
-                selectProp.innerHTML = '<option value="">Seleccione la propiedad de interés...</option>' + 
-                    activas.map(p => `<option value="${p.id}">${p.nombre} (${p.operacion || 'Venta'})</option>`).join('');
-            }
-
-            renderizarCatalogo(propiedades || [], clientes || []);
-        }
-
-        function renderizarCatalogo(propiedades, clientes) {
-            const contenedor = document.getElementById('contenedor-catalogo');
-
-            if (propiedades.length === 0) {
-                contenedor.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-sm text-center"><p class="text-gray-500 text-sm">No hay propiedades registradas. Ve a la pestaña "Registros" para agregar la primera.</p></div>`;
-                return;
-            }
-
-            // Vista de detalle de una propiedad seleccionada
-            if (propiedadSeleccionadaId !== null) {
-                const p = propiedades.find(x => x.id == propiedadSeleccionadaId);
-                if (!p) {
-                    propiedadSeleccionadaId = null;
-                    renderizarCatalogo(propiedades, clientes);
-                    return;
-                }
-
-                const prospectosDeEsta = clientes.filter(c => c.propiedad_id == p.id);
-                const esBaja = p.estado === 'Baja';
-
-                contenedor.innerHTML = `
-                    <button onclick="propiedadSeleccionadaId = null; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="mb-4 inline-flex items-center text-sm font-medium text-blue-600 hover:underline">
-                        ← Volver al Catálogo General
-                    </button>
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border ${esBaja ? 'border-red-300 bg-red-50/30' : ''}">
-                        ${esBaja ? `<div class="bg-red-600 text-white text-xs px-4 py-2 font-semibold text-center">PROPIEDAD DADA DE BAJA - Motivo: ${p.motivo_baja || 'No especificado'}</div>` : ''}
-                        <div class="md:flex">
-                            <div class="md:w-1/2 h-80 bg-gray-200 relative">
-                                ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-sm">Sin imagen de referencia</div>`}
-                                <div class="absolute top-3 right-3 flex space-x-2">
-                                    <span class="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full shadow font-medium">${p.operacion || 'Venta'}</span>
-                                    <span class="text-xs ${esBaja ? 'bg-red-600' : 'bg-blue-600'} text-white px-3 py-1 rounded-full shadow">${p.estado}</span>
-                                </div>
-                            </div>
-                            <div class="md:w-1/2 p-6 flex flex-col justify-between">
-                                <div>
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h2 class="text-2xl font-bold text-gray-800">${p.nombre}</h2>
-                                        <button onclick="prepararEdicion(${p.id})" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-600 transition flex items-center space-x-1">
-                                            <span>✏️ Editar Propiedad</span>
-                                        </button>
-                                    </div>
-                                    <p class="text-sm text-gray-500 mb-1">📍 ${p.ubicacion}</p>
-                                    <p class="text-lg font-bold text-blue-600 mb-4">💰 ${p.precio}</p>
-                                    <div class="bg-gray-50 p-4 rounded-lg border mb-4">
-                                        <h4 class="text-xs font-bold text-gray-600 uppercase mb-1">Descripción</h4>
-                                        <p class="text-sm text-gray-700 whitespace-pre-line">${p.descripcion || 'Sin descripción detallada.'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Historial de Prospectos exclusivo -->
-                        <div class="p-6 border-t bg-gray-50">
-                            <h3 class="text-base font-bold text-gray-800 mb-3">👥 Historial de Prospectos que consultaron (${prospectosDeEsta.length})</h3>
-                            <div class="space-y-2">
-                                ${prospectosDeEsta.length === 0 ? 
-                                    `<p class="text-sm text-gray-400 italic">Ningún prospecto registrado para esta propiedad todavía.</p>` :
-                                    prospectosDeEsta.map(c => `
-                                        <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm">
-                                            <div>
-                                                <p class="font-semibold text-gray-800">${c.nombre}</p>
-                                                <p class="text-xs text-gray-500">📞 ${c.telefono} | ✉️ ${c.email || 'Sin correo'}</p>
-                                            </div>
-                                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">${c.estado}</span>
-                                        </div>
-                                    `).join('')
-                                }
-                            </div>
-                        </div>
+            return `
+                <div class="p-3 mb-2 bg-gray-50 border-l-4 border-blue-500 rounded text-sm">
+                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span><b>De:</b> ${h.estado_anterior} ➔ <b>A:</b> <span class="text-blue-600 font-semibold">${h.estado_nuevo}</span></span>
+                        <span>📅 ${fechaFormateada}</span>
                     </div>
-                `;
-                return;
-            }
-
-            window.propiedadesGlobalesCache = propiedades;
-            window.clientesGlobalesCache = clientes;
-
-            // Filtrar para mostrar activas primero o todas con distinción
-            contenedor.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Catálogo de Propiedades</h2>
-                    <span class="text-xs text-gray-500">Haz clic en cualquier propiedad para ver detalles, historial o editar.</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${propiedades.map(p => {
-                        const baja = p.estado === 'Baja';
-                        return `
-                            <div onclick="propiedadSeleccionadaId = ${p.id}; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col justify-between ${baja ? 'opacity-75 border-red-200' : ''}">
-                                <div class="h-48 bg-gray-200 relative">
-                                    ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen</div>`}
-                                    <div class="absolute top-2 right-2 flex space-x-1">
-                                        <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded shadow">${p.operacion || 'Venta'}</span>
-                                        <span class="text-[10px] ${baja ? 'bg-red-600' : 'bg-blue-600'} text-white px-2 py-0.5 rounded shadow">${p.estado}</span>
-                                    </div>
-                                </div>
-                                <div class="p-4">
-                                    <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
-                                    <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion}</p>
-                                    <p class="text-sm font-bold text-blue-600">💰 ${p.precio}</p>
-                                    ${baja ? `<p class="text-[11px] text-red-600 mt-2 font-medium">⚠️ Baja: ${p.motivo_baja || 'Sin motivo'}</p>` : ''}
-                                </div>
-                                <div class="px-4 py-3 bg-gray-50 border-t text-xs font-medium text-blue-600 flex justify-between items-center">
-                                    <span>Ver detalles e historial</span>
-                                    <span>→</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                    ${h.observacion ? `<p class="text-gray-700 mt-1 italic">"${h.observacion}"</p>` : ''}
                 </div>
             `;
-        }
+        }).join('');
+    } else {
+        historialHTML = '<p class="text-gray-400 text-sm italic">No hay cambios registrados en el historial todavía.</p>';
+    }
 
-        // Cargar datos en el formulario para editar
-        function prepararEdicion(id) {
-            const p = window.propiedadesGlobalesCache.find(x => x.id == id);
-            if (!p) return;
-
-            cambiarVista('registros');
-
-            document.getElementById('form-prop-titulo').innerText = "✏️ Editar Propiedad";
-            document.getElementById('prop-edit-id').value = p.id;
-            document.getElementById('prop-nombre').value = p.nombre || '';
-            document.getElementById('prop-ubicacion').value = p.ubicacion || '';
-            document.getElementById('prop-precio').value = p.precio || '';
-            document.getElementById('prop-operacion').value = p.operacion || 'Venta';
-            document.getElementById('prop-descripcion').value = p.descripcion || '';
-            document.getElementById('prop-estado').value = p.estado || 'Disponible';
-
-            const contenedorMotivo = document.getElementById('contenedor-motivo');
-            if (p.estado === 'Baja') {
-                contenedorMotivo.classList.remove('hidden');
-                document.getElementById('prop-motivo-baja').value = p.motivo_baja || '';
-                document.getElementById('prop-motivo-baja').required = true;
-            } else {
-                contenedorMotivo.classList.add('hidden');
-                document.getElementById('prop-motivo-baja').value = '';
-                document.getElementById('prop-motivo-baja').required = false;
-            }
-
-            document.getElementById('btn-guardar-prop').innerText = "Actualizar Propiedad";
-            document.getElementById('btn-cancelar-edicion').classList.remove('hidden');
-        }
-
-        function resetearFormularioPropiedad() {
-            document.getElementById('form-propiedad').reset();
-            document.getElementById('prop-edit-id').value = '';
-            document.getElementById('form-prop-titulo').innerText = "➕ Ingresar Nueva Propiedad";
-            document.getElementById('btn-guardar-prop').innerText = "Guardar Propiedad";
-            document.getElementById('btn-cancelar-edicion').classList.add('hidden');
-            document.getElementById('contenedor-motivo').classList.add('hidden');
-        }
-
-        // Guardar o Actualizar Propiedad
-        async function guardarPropiedad(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-guardar-prop');
-            const editId = document.getElementById('prop-edit-id').value;
-
-            btn.innerText = "Procesando...";
-            btn.disabled = true;
-
-            const nombre = document.getElementById('prop-nombre').value;
-            const ubicacion = document.getElementById('prop-ubicacion').value;
-            const precio = document.getElementById('prop-precio').value;
-            const operacion = document.getElementById('prop-operacion').value;
-            const descripcion = document.getElementById('prop-descripcion').value;
-            const estado = document.getElementById('prop-estado').value;
-            const motivo_baja = estado === 'Baja' ? document.getElementById('prop-motivo-baja').value : null;
-            const fileInput = document.getElementById('prop-file');
-
-            let imagenUrl = "";
-
-            // Buscar si ya tiene imagen previa si estamos editando
-            if (editId) {
-                const pExistente = window.propiedadesGlobalesCache.find(x => x.id == editId);
-                if (pExistente) imagenUrl = pExistente.imagen;
-            }
-
-            // Si seleccionó un archivo nuevo, subirlo a Supabase Storage
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const fileName = `${Date.now()}-${file.name}`;
+    // Insertar o mostrar este contenido en tu modal o sección de detalles existente en el HTML
+    // (Ajusta el ID de tu contenedor de modal según cómo lo tengas construido en tu web)
+    const contenedorModal = document.getElementById('modal-detalle-cliente'); 
+    if (contenedorModal) {
+        contenedorModal.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full mx-auto relative">
+                <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-lg">✕</button>
                 
-                const { data: uploadData, error: uploadError } = await db.storage
-                    .from('fotos-propiedades')
-                    .upload(fileName, file);
+                <h2 class="text-xl font-bold text-gray-800 mb-2">👤 ${cliente.nombre || 'Cliente sin nombre'}</h2>
+                <p class="text-sm text-gray-600 mb-4">Teléfono: ${cliente.telefono || 'No registrado'} | Email: ${cliente.email || 'No registrado'}</p>
 
-                if (uploadError) {
-                    alert("Error al subir la imagen: " + uploadError.message);
-                    btn.innerText = editId ? "Actualizar Propiedad" : "Guardar Propiedad";
-                    btn.disabled = false;
-                    return;
-                }
+                <!-- Selector de Estado de Venta -->
+                <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <label class="block text-sm font-semibold text-blue-900 mb-2">Etapa Actual del Proceso de Venta:</label>
+                    <div class="flex gap-2">
+                        <select id="nuevo-estado-select" class="flex-1 border border-gray-300 rounded p-2 text-sm bg-white">
+                            ${opcionesHTML}
+                        </select>
+                        <button onclick="
+                            const nuevo = document.getElementById('nuevo-estado-select').value;
+                            const obs = prompt('Observación opcional para este cambio de etapa:');
+                            cambiarEstadoCliente(${cliente.id}, '${cliente.estado_prospecto || 'Nuevo Lead'}', nuevo, obs || '');
+                        " class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700 transition">
+                            Actualizar Etapa
+                        </button>
+                    </div>
+                </div>
 
-                const { data: publicURL } = db.storage
-                    .from('fotos-propiedades')
-                    .getPublicUrl(fileName);
-
-                imagenUrl = publicURL.publicUrl;
-            }
-
-            let error;
-            if (editId) {
-                // Actualizar registro existente
-                const res = await db.from('propiedades').update({ 
-                    nombre, ubicacion, precio, operacion, descripcion, imagen: imagenUrl, estado, motivo_baja 
-                }).eq('id', editId);
-                error = res.error;
-            } else {
-                // Insertar nuevo registro
-                const res = await db.from('propiedades').insert([{ 
-                    nombre, ubicacion, precio, operacion, descripcion, imagen: imagenUrl, estado, motivo_baja 
-                }]);
-                error = res.error;
-            }
-
-            if (error) {
-                alert('Error al guardar propiedad: ' + error.message);
-            } else {
-                resetearFormularioPropiedad();
-                alert(editId ? '¡Propiedad actualizada con éxito!' : '¡Propiedad guardada con éxito!');
-                cambiarVista('catalogo');
-            }
-
-            btn.innerText = "Guardar Propiedad";
-            btn.disabled = false;
-        }
-
-        // Guardar Cliente vinculado
-        async function guardarCliente(e) {
-            e.preventDefault();
-            const nombre = document.getElementById('cli-nombre').value;
-            const telefono = document.getElementById('cli-telefono').value;
-            const email = document.getElementById('cli-email').value;
-            const propiedad_id = document.getElementById('cli-propiedad-id').value;
-            const estado = document.getElementById('cli-estado').value;
-
-            const { error } = await db.from('clientes').insert([{ nombre, telefono, email, propiedad_id, estado }]);
-            
-            if (error) {
-                alert('Error al guardar cliente: ' + error.message);
-            } else {
-                document.getElementById('form-cliente').reset();
-                alert('¡Prospecto vinculado con éxito!');
-                cambiarVista('catalogo');
-            }
-        }
-    </script>
-</body>
-</html>
+                <!-- Bitácora de Historial -->
+                <h3 class="font-bold text-gray-700 mb-3 border-b pb-1">📜 Historial de Cambios y Fechas</h3>
+                <div class="max-h-60 overflow-y-auto pr-2">
+                    ${historialHTML}
+                </div>
+            </div>
+        `;
+        contenedorModal.classList.remove('hidden');
+    }
+}
