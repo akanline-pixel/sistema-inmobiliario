@@ -147,15 +147,13 @@
     <!-- Script de Conexión y Lógica -->
     <script>
         // ==========================================
-        // CONFIGURACIÓN DE SUPABASE (Modo Public Safe)
+        // CONFIGURACIÓN DE SUPABASE 
         // ==========================================
         const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ViwJySjyxq09N_HL4TIirQ_3j5yUv5p';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9henNybGdydmN6Y2p4b2tzdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY4NjAsImV4cCI6MjEwMDQyMjg2MH0.WagZw_nk7tOCTa9I9jdyytDaIrzWXtYlzaItLECox3A';
 
         const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: false, autoRefreshToken: false }
-        });
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Etapas oficiales para ventas
         const ETAPAS_VENTA = [
