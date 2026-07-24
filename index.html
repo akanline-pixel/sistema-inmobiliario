@@ -9,92 +9,185 @@
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans pb-12">
 
     <div class="max-w-7xl mx-auto p-6">
         <header class="mb-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
             <h1 class="text-2xl font-bold text-gray-800">Gestión Inmobiliaria</h1>
-            <span id="status-conexion" class="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Conectando con Supabase...</span>
+            <span id="status-conexion" class="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Conectando...</span>
         </header>
 
-        <!-- Contenedor principal -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Sección Propiedades -->
-            <div class="bg-white p-6 rounded-xl shadow-sm">
-                <h2 class="text-lg font-semibold mb-4 text-gray-700">Propiedades Registradas</h2>
-                <div id="lista-propiedades" class="space-y-3">
-                    <p class="text-gray-500 text-sm">Cargando propiedades...</p>
-                </div>
+        <!-- SECCIÓN DE FORMULARIOS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Formulario Propiedades -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-500">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">➕ Registrar Propiedad con Foto</h2>
+                <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-3">
+                    <input type="text" id="prop-nombre" placeholder="Título (ej: Parcela Lomas Coloradas)" required class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="prop-ubicacion" placeholder="Ubicación (ej: San Pedro de la Paz)" class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000)" class="w-full p-2 border rounded text-sm">
+                    <input type="url" id="prop-imagen" placeholder="URL de la foto de referencia (ej: https://...)" class="w-full p-2 border rounded text-sm">
+                    <select id="prop-estado" class="w-full p-2 border rounded text-sm bg-white">
+                        <option value="Disponible">Disponible</option>
+                        <option value="Reservada">Reservada</option>
+                        <option value="Vendida">Vendida</option>
+                    </select>
+                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
+                </form>
             </div>
 
-            <!-- Sección Clientes / Prospectos -->
-            <div class="bg-white p-6 rounded-xl shadow-sm">
-                <h2 class="text-lg font-semibold mb-4 text-gray-700">Prospectos y Clientes</h2>
-                <div id="lista-clientes" class="space-y-3">
-                    <p class="text-gray-500 text-sm">Cargando clientes...</p>
-                </div>
+            <!-- Formulario Clientes / Prospectos vinculados -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-purple-500">
+                <h2 class="text-lg font-semibold mb-4 text-gray-700">➕ Registrar Prospecto / Cliente</h2>
+                <form id="form-cliente" onsubmit="guardarCliente(event)" class="space-y-3">
+                    <input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="cli-telefono" placeholder="Teléfono (ej: +569...)" class="w-full p-2 border rounded text-sm">
+                    <input type="email" id="cli-email" placeholder="Correo electrónico" class="w-full p-2 border rounded text-sm">
+                    
+                    <!-- Selector dinámico de propiedades -->
+                    <select id="cli-propiedad-id" required class="w-full p-2 border rounded text-sm bg-white">
+                        <option value="">Seleccione la propiedad de interés...</option>
+                    </select>
+
+                    <select id="cli-estado" class="w-full p-2 border rounded text-sm bg-white">
+                        <option value="Nuevo Prospecto">Nuevo Prospecto</option>
+                        <option value="En Negociación">En Negociación</option>
+                        <option value="Cerrado">Cerrado</option>
+                    </select>
+                    <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded text-sm font-medium hover:bg-purple-700 transition">Vincular Prospecto a Propiedad</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE VISUALIZACIÓN DE PROPIEDADES Y SUS PROSPECTOS -->
+        <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
+            <h2 class="text-xl font-bold mb-6 text-gray-800">🏠 Catálogo de Propiedades e Historial de Prospectos</h2>
+            <div id="grid-propiedades" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p class="text-gray-500 text-sm">Cargando propiedades...</p>
             </div>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // CONFIGURACIÓN DE SUPABASE (CONFIGURADO)
+        // CONFIGURACIÓN DE SUPABASE
         // ==========================================
         const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9henNybGdydmN6Y2p4b2tzdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY4NjAsImV4cCI6MjEwMDQyMjg2MH0.WagZw_nk7tOCTa9I9jdyytDaIrzWXtYlzaItLECox3A';
         // ==========================================
 
         const { createClient } = supabase;
-        let db = null;
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         try {
-            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             document.getElementById('status-conexion').innerText = 'Conectado a Supabase';
             document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-green-100 text-green-800';
-            cargarDatos();
+            cargarSistema();
         } catch (e) {
             document.getElementById('status-conexion').innerText = 'Error de conexión';
-            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-red-100 text-red-850';
+            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-red-100 text-red-800';
         }
 
-        async function cargarDatos() {
-            // Cargar Propiedades
-            const { data: props, error: errProps } = await db.from('propiedades').select('*');
-            const divProps = document.getElementById('lista-propiedades');
-            if (errProps) {
-                divProps.innerHTML = `<p class="text-red-500 text-sm">Error al cargar propiedades: ${errProps.message}</p>`;
-            } else if (props.length === 0) {
-                divProps.innerHTML = `<p class="text-gray-500 text-sm">No hay propiedades registradas aún.</p>`;
-            } else {
-                divProps.innerHTML = props.map(p => `
-                    <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
-                        <div>
-                            <p class="font-medium text-gray-800">${p.nombre}</p>
-                            <p class="text-xs text-gray-500">${p.ubicacion || 'Sin ubicación'} - ${p.precio || 'Sin precio'}</p>
-                        </div>
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${p.estado}</span>
-                    </div>
-                `).join('');
+        async function cargarSistema() {
+            // 1. Cargar Propiedades con sus Clientes relacionados
+            const { data: propiedades, error: errProp } = await db.from('propiedades').select('*').order('id', { ascending: false });
+            const { data: clientes, error: errCli } = await db.from('clientes').select('*').order('id', { ascending: false });
+
+            if (errProp || errCli) {
+                console.error("Error al cargar datos:", errProp || errCli);
+                return;
             }
 
-            // Cargar Clientes
-            const { data: clients, error: errClients } = await db.from('clientes').select('*');
-            const divClients = document.getElementById('lista-clientes');
-            if (errClients) {
-                divClients.innerHTML = `<p class="text-red-500 text-sm">Error al cargar clientes: ${errClients.message}</p>`;
-            } else if (clients.length === 0) {
-                divClients.innerHTML = `<p class="text-gray-500 text-sm">No hay clientes registrados aún.</p>`;
-            } else {
-                divClients.innerHTML = clients.map(c => `
-                    <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center">
+            // Llenar el selector del formulario de clientes
+            const selectProp = document.getElementById('cli-propiedad-id');
+            selectProp.innerHTML = '<option value="">Seleccione la propiedad de interés...</option>' + 
+                propiedades.map(p => `<option value="${p.id}">${p.nombre} (${p.ubicacion || 'Sin ubicación'})</option>`).join('');
+
+            // Renderizar el catálogo visual de propiedades con su historial de prospectos
+            const grid = document.getElementById('grid-propiedades');
+            if (propiedades.length === 0) {
+                grid.innerHTML = `<p class="text-gray-500 text-sm col-span-full">No hay propiedades registradas aún.</p>`;
+                return;
+            }
+
+            grid.innerHTML = propiedades.map(p => {
+                // Filtrar los clientes que consultaron por ESTA propiedad específica
+                const prospectosDeEstaPropiedad = clientes.filter(c => c.propiedad_id == p.id);
+
+                return `
+                    <div class="border rounded-xl overflow-hidden shadow-sm bg-gray-50 flex flex-col justify-between">
                         <div>
-                            <p class="font-medium text-gray-800">${c.nombre}</p>
-                            <p class="text-xs text-gray-500">${c.telefono || 'Sin teléfono'} - ${c.email || ''}</p>
+                            <!-- Foto de referencia -->
+                            <div class="h-48 bg-gray-200 relative overflow-hidden">
+                                ${p.imagen ? `<img src="${p.imagen}" alt="Foto propiedad" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen de referencia</div>`}
+                                <span class="absolute top-2 right-2 text-xs bg-blue-600 text-white px-2 py-1 rounded shadow">${p.estado}</span>
+                            </div>
+                            <!-- Detalles -->
+                            <div class="p-4">
+                                <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
+                                <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion || 'Sin ubicación'}</p>
+                                <p class="text-sm font-semibold text-blue-600 mb-4">💰 ${p.precio || 'Consultar precio'}</p>
+
+                                <!-- Historial de Prospectos -->
+                                <div class="border-t pt-3">
+                                    <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Historial de Prospectos (${prospectosDeEstaPropiedad.length})</h4>
+                                    <div class="space-y-2 max-h-40 overflow-y-auto">
+                                        ${prospectosDeEstaPropiedad.length === 0 ? 
+                                            `<p class="text-xs text-gray-400 italic">Ningún prospecto registrado para esta propiedad.</p>` :
+                                            prospectosDeEstaPropiedad.map(c => `
+                                                <div class="bg-white p-2 rounded border text-xs flex justify-between items-center">
+                                                    <div>
+                                                        <p class="font-semibold text-gray-800">${c.nombre}</p>
+                                                        <p class="text-gray-500">${c.telefono || 'Sin teléfono'} - ${c.email || ''}</p>
+                                                    </div>
+                                                    <span class="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[10px]">${c.estado}</span>
+                                                </div>
+                                            `).join('')
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">${c.estado}</span>
                     </div>
-                `).join('');
+                `;
+            }).join('');
+        }
+
+        // Función para guardar Propiedad (incluye campo imagen)
+        async function guardarPropiedad(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('prop-nombre').value;
+            const ubicacion = document.getElementById('prop-ubicacion').value;
+            const precio = document.getElementById('prop-precio').value;
+            const imagen = document.getElementById('prop-imagen').value;
+            const estado = document.getElementById('prop-estado').value;
+
+            const { error } = await db.from('propiedades').insert([{ nombre, ubicacion, precio, imagen, estado }]);
+            
+            if (error) {
+                alert('Error al guardar propiedad: ' + error.message);
+            } else {
+                document.getElementById('form-propiedad').reset();
+                cargarSistema();
+            }
+        }
+
+        // Función para guardar Cliente vinculado a una propiedad
+        async function guardarCliente(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('cli-nombre').value;
+            const telefono = document.getElementById('cli-telefono').value;
+            const email = document.getElementById('cli-email').value;
+            const propiedad_id = document.getElementById('cli-propiedad-id').value;
+            const estado = document.getElementById('cli-estado').value;
+
+            const { error } = await db.from('clientes').insert([{ nombre, telefono, email, propiedad_id, estado }]);
+            
+            if (error) {
+                alert('Error al guardar cliente: ' + error.message);
+            } else {
+                document.getElementById('form-cliente').reset();
+                cargarSistema();
             }
         }
     </script>
