@@ -35,31 +35,51 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- VISTA 2: REGISTROS Y FORMULARIOS -->
+        <!-- VISTA 2: REGISTROS Y FORMULARIOS (CREAR / EDITAR) -->
         <!-- ========================================== -->
         <section id="vista-registros" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 <!-- Formulario de Propiedades -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-600">
-                    <h2 class="text-lg font-semibold mb-4 text-gray-800">➕ Ingresar Nueva Propiedad</h2>
+                    <h2 id="form-prop-titulo" class="text-lg font-semibold mb-4 text-gray-800">➕ Ingresar Nueva Propiedad</h2>
                     <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-3">
+                        <input type="hidden" id="prop-edit-id">
+                        
                         <input type="text" id="prop-nombre" placeholder="Título (ej: Parcela Lomas Coloradas)" required class="w-full p-2 border rounded text-sm">
                         <input type="text" id="prop-ubicacion" placeholder="Ubicación (ej: San Pedro de la Paz)" required class="w-full p-2 border rounded text-sm">
-                        <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000)" required class="w-full p-2 border rounded text-sm">
+                        <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000 o $450.000)" required class="w-full p-2 border rounded text-sm">
+                        
+                        <select id="prop-operacion" class="w-full p-2 border rounded text-sm bg-white" required>
+                            <option value="Venta">Venta</option>
+                            <option value="Arriendo">Arriendo</option>
+                            <option value="Venta o Arriendo">Venta o Arriendo</option>
+                        </select>
+
                         <textarea id="prop-descripcion" placeholder="Descripción detallada de la propiedad..." rows="3" class="w-full p-2 border rounded text-sm"></textarea>
                         
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Foto de referencia (Archivo):</label>
                             <input type="file" id="prop-file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-[11px] text-gray-400 mt-1">Si editas y no seleccionas archivo, se mantendrá la foto actual.</p>
                         </div>
 
                         <select id="prop-estado" class="w-full p-2 border rounded text-sm bg-white">
                             <option value="Disponible">Disponible</option>
                             <option value="Reservada">Reservada</option>
                             <option value="Vendida">Vendida</option>
+                            <option value="Arrendada">Arrendada</option>
+                            <option value="Baja">Dar de Baja (Inactiva)</option>
                         </select>
-                        <button type="submit" id="btn-guardar-prop" class="w-full bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
+
+                        <div id="contenedor-motivo" class="hidden">
+                            <input type="text" id="prop-motivo-baja" placeholder="Motivo de la baja (ej: Se vendió de forma particular)" class="w-full p-2 border rounded text-sm bg-red-50 border-red-200 text-red-700">
+                        </div>
+
+                        <div class="flex space-x-2">
+                            <button type="submit" id="btn-guardar-prop" class="flex-1 bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
+                            <button type="button" id="btn-cancelar-edicion" onclick="resetearFormularioPropiedad()" class="hidden bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-400 transition">Cancelar</button>
+                        </div>
                     </form>
                 </div>
 
@@ -94,7 +114,7 @@
         // CONFIGURACIÓN DE SUPABASE
         // ==========================================
         const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9henNybGdydmN6Y2p4b2tzdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY4NjAsImV4cCI6MjEwMDQyMjg2MH0.WagZw_nk7tOCTa9I9jdyytDaIrzWXtYlzaItLECox3A';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9henNybGdydmN6Y2p4b2tzdmZmIiwicm9sZSI6ImFub24iOjE3ODQ4NDY4NjAsImV4cCI6MjEwMDQyMjg2MH0.WagZw_nk7tOCTa9I9jdyytDaIrzWXtYlzaItLECox3A';
         // ==========================================
 
         const { createClient } = supabase;
@@ -105,6 +125,19 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             cargarDatosGlobales();
+
+            // Mostrar u ocultar campo de motivo de baja según el estado seleccionado
+            document.getElementById('prop-estado').addEventListener('change', function() {
+                const contenedorMotivo = document.getElementById('contenedor-motivo');
+                if (this.value === 'Baja') {
+                    contenedorMotivo.classList.remove('hidden');
+                    document.getElementById('prop-motivo-baja').required = true;
+                } else {
+                    contenedorMotivo.classList.add('hidden');
+                    document.getElementById('prop-motivo-baja').required = false;
+                    document.getElementById('prop-motivo-baja').value = '';
+                }
+            });
         });
 
         // Control de Pestañas
@@ -120,7 +153,7 @@
                 vReg.classList.add('hidden');
                 bCat.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition";
                 bReg.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
-                propiedadSeleccionadaId = null; // Reiniciar selección al volver
+                propiedadSeleccionadaId = null;
                 cargarDatosGlobales();
             } else {
                 vCat.classList.add('hidden');
@@ -130,16 +163,16 @@
             }
         }
 
-        // Cargar datos y renderizar
         async function cargarDatosGlobales() {
             const { data: propiedades } = await db.from('propiedades').select('*').order('id', { ascending: false });
             const { data: clientes } = await db.from('clientes').select('*').order('id', { ascending: false });
 
-            // Llenar selector de la página 2
+            // Llenar selector de la página 2 (solo propiedades activas o disponibles para clientes)
             const selectProp = document.getElementById('cli-propiedad-id');
             if (propiedades) {
+                const activas = propiedades.filter(p => p.estado !== 'Baja');
                 selectProp.innerHTML = '<option value="">Seleccione la propiedad de interés...</option>' + 
-                    propiedades.map(p => `<option value="${p.id}">${p.nombre} (${p.ubicacion || 'Sin ubicación'})</option>`).join('');
+                    activas.map(p => `<option value="${p.id}">${p.nombre} (${p.operacion || 'Venta'})</option>`).join('');
             }
 
             renderizarCatalogo(propiedades || [], clientes || []);
@@ -153,7 +186,7 @@
                 return;
             }
 
-            // Si hay una propiedad seleccionada, mostrar su vista de detalle completa
+            // Vista de detalle de una propiedad seleccionada
             if (propiedadSeleccionadaId !== null) {
                 const p = propiedades.find(x => x.id == propiedadSeleccionadaId);
                 if (!p) {
@@ -163,20 +196,30 @@
                 }
 
                 const prospectosDeEsta = clientes.filter(c => c.propiedad_id == p.id);
+                const esBaja = p.estado === 'Baja';
 
                 contenedor.innerHTML = `
                     <button onclick="propiedadSeleccionadaId = null; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="mb-4 inline-flex items-center text-sm font-medium text-blue-600 hover:underline">
                         ← Volver al Catálogo General
                     </button>
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border ${esBaja ? 'border-red-300 bg-red-50/30' : ''}">
+                        ${esBaja ? `<div class="bg-red-600 text-white text-xs px-4 py-2 font-semibold text-center">PROPIEDAD DADA DE BAJA - Motivo: ${p.motivo_baja || 'No especificado'}</div>` : ''}
                         <div class="md:flex">
                             <div class="md:w-1/2 h-80 bg-gray-200 relative">
                                 ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-sm">Sin imagen de referencia</div>`}
-                                <span class="absolute top-3 right-3 text-xs bg-blue-600 text-white px-3 py-1 rounded-full shadow">${p.estado}</span>
+                                <div class="absolute top-3 right-3 flex space-x-2">
+                                    <span class="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full shadow font-medium">${p.operacion || 'Venta'}</span>
+                                    <span class="text-xs ${esBaja ? 'bg-red-600' : 'bg-blue-600'} text-white px-3 py-1 rounded-full shadow">${p.estado}</span>
+                                </div>
                             </div>
                             <div class="md:w-1/2 p-6 flex flex-col justify-between">
                                 <div>
-                                    <h2 class="text-2xl font-bold text-gray-800 mb-2">${p.nombre}</h2>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h2 class="text-2xl font-bold text-gray-800">${p.nombre}</h2>
+                                        <button onclick="prepararEdicion(${p.id})" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-600 transition flex items-center space-x-1">
+                                            <span>✏️ Editar Propiedad</span>
+                                        </button>
+                                    </div>
                                     <p class="text-sm text-gray-500 mb-1">📍 ${p.ubicacion}</p>
                                     <p class="text-lg font-bold text-blue-600 mb-4">💰 ${p.precio}</p>
                                     <div class="bg-gray-50 p-4 rounded-lg border mb-4">
@@ -210,52 +253,111 @@
                 return;
             }
 
-            // Guardar caché global para el botón de volver
             window.propiedadesGlobalesCache = propiedades;
             window.clientesGlobalesCache = clientes;
 
-            // Mostrar el listado completo del Catálogo
+            // Filtrar para mostrar activas primero o todas con distinción
             contenedor.innerHTML = `
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Catálogo de Propiedades Disponibles</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Catálogo de Propiedades</h2>
+                    <span class="text-xs text-gray-500">Haz clic en cualquier propiedad para ver detalles, historial o editar.</span>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${propiedades.map(p => `
-                        <div onclick="propiedadSeleccionadaId = ${p.id}; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col justify-between">
-                            <div class="h-48 bg-gray-200 relative">
-                                ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen</div>`}
-                                <span class="absolute top-2 right-2 text-xs bg-blue-600 text-white px-2 py-1 rounded shadow">${p.estado}</span>
+                    ${propiedades.map(p => {
+                        const baja = p.estado === 'Baja';
+                        return `
+                            <div onclick="propiedadSeleccionadaId = ${p.id}; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col justify-between ${baja ? 'opacity-75 border-red-200' : ''}">
+                                <div class="h-48 bg-gray-200 relative">
+                                    ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen</div>`}
+                                    <div class="absolute top-2 right-2 flex space-x-1">
+                                        <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded shadow">${p.operacion || 'Venta'}</span>
+                                        <span class="text-[10px] ${baja ? 'bg-red-600' : 'bg-blue-600'} text-white px-2 py-0.5 rounded shadow">${p.estado}</span>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
+                                    <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion}</p>
+                                    <p class="text-sm font-bold text-blue-600">💰 ${p.precio}</p>
+                                    ${baja ? `<p class="text-[11px] text-red-600 mt-2 font-medium">⚠️ Baja: ${p.motivo_baja || 'Sin motivo'}</p>` : ''}
+                                </div>
+                                <div class="px-4 py-3 bg-gray-50 border-t text-xs font-medium text-blue-600 flex justify-between items-center">
+                                    <span>Ver detalles e historial</span>
+                                    <span>→</span>
+                                </div>
                             </div>
-                            <div class="p-4">
-                                <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
-                                <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion}</p>
-                                <p class="text-sm font-bold text-blue-600">💰 ${p.precio}</p>
-                            </div>
-                            <div class="px-4 py-3 bg-gray-50 border-t text-xs font-medium text-blue-600 flex justify-between items-center">
-                                <span>Ver detalles e historial</span>
-                                <span>→</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
 
-        // Guardar Propiedad con Subida de Archivo Real a Supabase Storage
+        // Cargar datos en el formulario para editar
+        function prepararEdicion(id) {
+            const p = window.propiedadesGlobalesCache.find(x => x.id == id);
+            if (!p) return;
+
+            cambiarVista('registros');
+
+            document.getElementById('form-prop-titulo').innerText = "✏️ Editar Propiedad";
+            document.getElementById('prop-edit-id').value = p.id;
+            document.getElementById('prop-nombre').value = p.nombre || '';
+            document.getElementById('prop-ubicacion').value = p.ubicacion || '';
+            document.getElementById('prop-precio').value = p.precio || '';
+            document.getElementById('prop-operacion').value = p.operacion || 'Venta';
+            document.getElementById('prop-descripcion').value = p.descripcion || '';
+            document.getElementById('prop-estado').value = p.estado || 'Disponible';
+
+            const contenedorMotivo = document.getElementById('contenedor-motivo');
+            if (p.estado === 'Baja') {
+                contenedorMotivo.classList.remove('hidden');
+                document.getElementById('prop-motivo-baja').value = p.motivo_baja || '';
+                document.getElementById('prop-motivo-baja').required = true;
+            } else {
+                contenedorMotivo.classList.add('hidden');
+                document.getElementById('prop-motivo-baja').value = '';
+                document.getElementById('prop-motivo-baja').required = false;
+            }
+
+            document.getElementById('btn-guardar-prop').innerText = "Actualizar Propiedad";
+            document.getElementById('btn-cancelar-edicion').classList.remove('hidden');
+        }
+
+        function resetearFormularioPropiedad() {
+            document.getElementById('form-propiedad').reset();
+            document.getElementById('prop-edit-id').value = '';
+            document.getElementById('form-prop-titulo').innerText = "➕ Ingresar Nueva Propiedad";
+            document.getElementById('btn-guardar-prop').innerText = "Guardar Propiedad";
+            document.getElementById('btn-cancelar-edicion').classList.add('hidden');
+            document.getElementById('contenedor-motivo').classList.add('hidden');
+        }
+
+        // Guardar o Actualizar Propiedad
         async function guardarPropiedad(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-guardar-prop');
-            btn.innerText = "Subiendo imagen y guardando...";
+            const editId = document.getElementById('prop-edit-id').value;
+
+            btn.innerText = "Procesando...";
             btn.disabled = true;
 
             const nombre = document.getElementById('prop-nombre').value;
             const ubicacion = document.getElementById('prop-ubicacion').value;
             const precio = document.getElementById('prop-precio').value;
+            const operacion = document.getElementById('prop-operacion').value;
             const descripcion = document.getElementById('prop-descripcion').value;
             const estado = document.getElementById('prop-estado').value;
+            const motivo_baja = estado === 'Baja' ? document.getElementById('prop-motivo-baja').value : null;
             const fileInput = document.getElementById('prop-file');
 
             let imagenUrl = "";
 
-            // Si seleccionó un archivo, subirlo a Supabase Storage
+            // Buscar si ya tiene imagen previa si estamos editando
+            if (editId) {
+                const pExistente = window.propiedadesGlobalesCache.find(x => x.id == editId);
+                if (pExistente) imagenUrl = pExistente.imagen;
+            }
+
+            // Si seleccionó un archivo nuevo, subirlo a Supabase Storage
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const fileName = `${Date.now()}-${file.name}`;
@@ -266,12 +368,11 @@
 
                 if (uploadError) {
                     alert("Error al subir la imagen: " + uploadError.message);
-                    btn.innerText = "Guardar Propiedad";
+                    btn.innerText = editId ? "Actualizar Propiedad" : "Guardar Propiedad";
                     btn.disabled = false;
                     return;
                 }
 
-                // Obtener URL pública del archivo subido
                 const { data: publicURL } = db.storage
                     .from('fotos-propiedades')
                     .getPublicUrl(fileName);
@@ -279,16 +380,26 @@
                 imagenUrl = publicURL.publicUrl;
             }
 
-            // Guardar registro en la tabla propiedades
-            const { error } = await db.from('propiedades').insert([{ 
-                nombre, ubicacion, precio, descripcion, imagen: imagenUrl, estado 
-            }]);
+            let error;
+            if (editId) {
+                // Actualizar registro existente
+                const res = await db.from('propiedades').update({ 
+                    nombre, ubicacion, precio, operacion, descripcion, imagen: imagenUrl, estado, motivo_baja 
+                }).eq('id', editId);
+                error = res.error;
+            } else {
+                // Insertar nuevo registro
+                const res = await db.from('propiedades').insert([{ 
+                    nombre, ubicacion, precio, operacion, descripcion, imagen: imagenUrl, estado, motivo_baja 
+                }]);
+                error = res.error;
+            }
 
             if (error) {
                 alert('Error al guardar propiedad: ' + error.message);
             } else {
-                document.getElementById('form-propiedad').reset();
-                alert('¡Propiedad guardada con éxito!');
+                resetearFormularioPropiedad();
+                alert(editId ? '¡Propiedad actualizada con éxito!' : '¡Propiedad guardada con éxito!');
                 cambiarVista('catalogo');
             }
 
