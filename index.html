@@ -3,70 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Inmobiliario Profesional</title>
-    <!-- Tailwind CSS para diseño moderno -->
+    <title>Gestión Inmobiliaria Profesional</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 font-sans pb-12">
+<body class="bg-gray-100 font-sans min-h-screen pb-12">
 
-    <div class="max-w-7xl mx-auto p-6">
-        <header class="mb-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
-            <h1 class="text-2xl font-bold text-gray-800">Gestión Inmobiliaria</h1>
-            <span id="status-conexion" class="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-800">Conectando...</span>
-        </header>
-
-        <!-- SECCIÓN DE FORMULARIOS -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- Formulario Propiedades -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-500">
-                <h2 class="text-lg font-semibold mb-4 text-gray-700">➕ Registrar Propiedad con Foto</h2>
-                <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-3">
-                    <input type="text" id="prop-nombre" placeholder="Título (ej: Parcela Lomas Coloradas)" required class="w-full p-2 border rounded text-sm">
-                    <input type="text" id="prop-ubicacion" placeholder="Ubicación (ej: San Pedro de la Paz)" class="w-full p-2 border rounded text-sm">
-                    <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000)" class="w-full p-2 border rounded text-sm">
-                    <input type="url" id="prop-imagen" placeholder="URL de la foto de referencia (ej: https://...)" class="w-full p-2 border rounded text-sm">
-                    <select id="prop-estado" class="w-full p-2 border rounded text-sm bg-white">
-                        <option value="Disponible">Disponible</option>
-                        <option value="Reservada">Reservada</option>
-                        <option value="Vendida">Vendida</option>
-                    </select>
-                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
-                </form>
-            </div>
-
-            <!-- Formulario Clientes / Prospectos vinculados -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-purple-500">
-                <h2 class="text-lg font-semibold mb-4 text-gray-700">➕ Registrar Prospecto / Cliente</h2>
-                <form id="form-cliente" onsubmit="guardarCliente(event)" class="space-y-3">
-                    <input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required class="w-full p-2 border rounded text-sm">
-                    <input type="text" id="cli-telefono" placeholder="Teléfono (ej: +569...)" class="w-full p-2 border rounded text-sm">
-                    <input type="email" id="cli-email" placeholder="Correo electrónico" class="w-full p-2 border rounded text-sm">
-                    
-                    <!-- Selector dinámico de propiedades -->
-                    <select id="cli-propiedad-id" required class="w-full p-2 border rounded text-sm bg-white">
-                        <option value="">Seleccione la propiedad de interés...</option>
-                    </select>
-
-                    <select id="cli-estado" class="w-full p-2 border rounded text-sm bg-white">
-                        <option value="Nuevo Prospecto">Nuevo Prospecto</option>
-                        <option value="En Negociación">En Negociación</option>
-                        <option value="Cerrado">Cerrado</option>
-                    </select>
-                    <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded text-sm font-medium hover:bg-purple-700 transition">Vincular Prospecto a Propiedad</button>
-                </form>
-            </div>
+    <!-- MENÚ DE NAVEGACIÓN SUPERIOR -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">🏠 Sistema Inmobiliario</h1>
+            <nav class="flex space-x-3">
+                <button onclick="cambiarVista('catalogo')" id="btn-catalogo" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition">Catálogo de Propiedades</button>
+                <button onclick="cambiarVista('registros')" id="btn-registros" class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Registros / Formularios</button>
+            </nav>
         </div>
+    </header>
 
-        <!-- SECCIÓN DE VISUALIZACIÓN DE PROPIEDADES Y SUS PROSPECTOS -->
-        <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
-            <h2 class="text-xl font-bold mb-6 text-gray-800">🏠 Catálogo de Propiedades e Historial de Prospectos</h2>
-            <div id="grid-propiedades" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <main class="max-w-7xl mx-auto p-6">
+
+        <!-- ========================================== -->
+        <!-- VISTA 1: CATÁLOGO DE PROPIEDADES -->
+        <!-- ========================================== -->
+        <section id="vista-catalogo">
+            <div id="contenedor-catalogo" class="space-y-6">
+                <!-- Se llena dinámicamente -->
                 <p class="text-gray-500 text-sm">Cargando propiedades...</p>
             </div>
-        </div>
-    </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VISTA 2: REGISTROS Y FORMULARIOS -->
+        <!-- ========================================== -->
+        <section id="vista-registros" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Formulario de Propiedades -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-blue-600">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-800">➕ Ingresar Nueva Propiedad</h2>
+                    <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-3">
+                        <input type="text" id="prop-nombre" placeholder="Título (ej: Parcela Lomas Coloradas)" required class="w-full p-2 border rounded text-sm">
+                        <input type="text" id="prop-ubicacion" placeholder="Ubicación (ej: San Pedro de la Paz)" required class="w-full p-2 border rounded text-sm">
+                        <input type="text" id="prop-precio" placeholder="Precio (ej: $85.000.000)" required class="w-full p-2 border rounded text-sm">
+                        <textarea id="prop-descripcion" placeholder="Descripción detallada de la propiedad..." rows="3" class="w-full p-2 border rounded text-sm"></textarea>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Foto de referencia (Archivo):</label>
+                            <input type="file" id="prop-file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+
+                        <select id="prop-estado" class="w-full p-2 border rounded text-sm bg-white">
+                            <option value="Disponible">Disponible</option>
+                            <option value="Reservada">Reservada</option>
+                            <option value="Vendida">Vendida</option>
+                        </select>
+                        <button type="submit" id="btn-guardar-prop" class="w-full bg-blue-600 text-white p-2 rounded text-sm font-medium hover:bg-blue-700 transition">Guardar Propiedad</button>
+                    </form>
+                </div>
+
+                <!-- Formulario de Prospectos -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-purple-600">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-800">➕ Registrar Prospecto / Cliente</h2>
+                    <form id="form-cliente" onsubmit="guardarCliente(event)" class="space-y-3">
+                        <input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required class="w-full p-2 border rounded text-sm">
+                        <input type="text" id="cli-telefono" placeholder="Teléfono (ej: +569...)" required class="w-full p-2 border rounded text-sm">
+                        <input type="email" id="cli-email" placeholder="Correo electrónico" class="w-full p-2 border rounded text-sm">
+                        
+                        <select id="cli-propiedad-id" required class="w-full p-2 border rounded text-sm bg-white">
+                            <option value="">Seleccione la propiedad de interés...</option>
+                        </select>
+
+                        <select id="cli-estado" class="w-full p-2 border rounded text-sm bg-white">
+                            <option value="Nuevo Prospecto">Nuevo Prospecto</option>
+                            <option value="En Negociación">En Negociación</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select>
+                        <button type="submit" class="w-full bg-purple-600 text-white p-2 rounded text-sm font-medium hover:bg-purple-700 transition">Vincular Prospecto</button>
+                    </form>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
 
     <script>
         // ==========================================
@@ -79,100 +100,203 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        try {
-            document.getElementById('status-conexion').innerText = 'Conectado a Supabase';
-            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-green-100 text-green-800';
-            cargarSistema();
-        } catch (e) {
-            document.getElementById('status-conexion').innerText = 'Error de conexión';
-            document.getElementById('status-conexion').className = 'text-xs px-3 py-1 rounded-full bg-red-100 text-red-800';
+        let vistaActual = 'catalogo';
+        let propiedadSeleccionadaId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            cargarDatosGlobales();
+        });
+
+        // Control de Pestañas
+        function cambiarVista(vista) {
+            vistaActual = vista;
+            const vCat = document.getElementById('vista-catalogo');
+            const vReg = document.getElementById('vista-registros');
+            const bCat = document.getElementById('btn-catalogo');
+            const bReg = document.getElementById('btn-registros');
+
+            if (vista === 'catalogo') {
+                vCat.classList.remove('hidden');
+                vReg.classList.add('hidden');
+                bCat.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition";
+                bReg.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
+                propiedadSeleccionadaId = null; // Reiniciar selección al volver
+                cargarDatosGlobales();
+            } else {
+                vCat.classList.add('hidden');
+                vReg.classList.remove('hidden');
+                bReg.className = "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition";
+                bCat.className = "px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition";
+            }
         }
 
-        async function cargarSistema() {
-            // 1. Cargar Propiedades con sus Clientes relacionados
-            const { data: propiedades, error: errProp } = await db.from('propiedades').select('*').order('id', { ascending: false });
-            const { data: clientes, error: errCli } = await db.from('clientes').select('*').order('id', { ascending: false });
+        // Cargar datos y renderizar
+        async function cargarDatosGlobales() {
+            const { data: propiedades } = await db.from('propiedades').select('*').order('id', { ascending: false });
+            const { data: clientes } = await db.from('clientes').select('*').order('id', { ascending: false });
 
-            if (errProp || errCli) {
-                console.error("Error al cargar datos:", errProp || errCli);
-                return;
-            }
-
-            // Llenar el selector del formulario de clientes
+            // Llenar selector de la página 2
             const selectProp = document.getElementById('cli-propiedad-id');
-            selectProp.innerHTML = '<option value="">Seleccione la propiedad de interés...</option>' + 
-                propiedades.map(p => `<option value="${p.id}">${p.nombre} (${p.ubicacion || 'Sin ubicación'})</option>`).join('');
+            if (propiedades) {
+                selectProp.innerHTML = '<option value="">Seleccione la propiedad de interés...</option>' + 
+                    propiedades.map(p => `<option value="${p.id}">${p.nombre} (${p.ubicacion || 'Sin ubicación'})</option>`).join('');
+            }
 
-            // Renderizar el catálogo visual de propiedades con su historial de prospectos
-            const grid = document.getElementById('grid-propiedades');
+            renderizarCatalogo(propiedades || [], clientes || []);
+        }
+
+        function renderizarCatalogo(propiedades, clientes) {
+            const contenedor = document.getElementById('contenedor-catalogo');
+
             if (propiedades.length === 0) {
-                grid.innerHTML = `<p class="text-gray-500 text-sm col-span-full">No hay propiedades registradas aún.</p>`;
+                contenedor.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-sm text-center"><p class="text-gray-500 text-sm">No hay propiedades registradas. Ve a la pestaña "Registros" para agregar la primera.</p></div>`;
                 return;
             }
 
-            grid.innerHTML = propiedades.map(p => {
-                // Filtrar los clientes que consultaron por ESTA propiedad específica
-                const prospectosDeEstaPropiedad = clientes.filter(c => c.propiedad_id == p.id);
+            // Si hay una propiedad seleccionada, mostrar su vista de detalle completa
+            if (propiedadSeleccionadaId !== null) {
+                const p = propiedades.find(x => x.id == propiedadSeleccionadaId);
+                if (!p) {
+                    propiedadSeleccionadaId = null;
+                    renderizarCatalogo(propiedades, clientes);
+                    return;
+                }
 
-                return `
-                    <div class="border rounded-xl overflow-hidden shadow-sm bg-gray-50 flex flex-col justify-between">
-                        <div>
-                            <!-- Foto de referencia -->
-                            <div class="h-48 bg-gray-200 relative overflow-hidden">
-                                ${p.imagen ? `<img src="${p.imagen}" alt="Foto propiedad" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen de referencia</div>`}
-                                <span class="absolute top-2 right-2 text-xs bg-blue-600 text-white px-2 py-1 rounded shadow">${p.estado}</span>
+                const prospectosDeEsta = clientes.filter(c => c.propiedad_id == p.id);
+
+                contenedor.innerHTML = `
+                    <button onclick="propiedadSeleccionadaId = null; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="mb-4 inline-flex items-center text-sm font-medium text-blue-600 hover:underline">
+                        ← Volver al Catálogo General
+                    </button>
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+                        <div class="md:flex">
+                            <div class="md:w-1/2 h-80 bg-gray-200 relative">
+                                ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-sm">Sin imagen de referencia</div>`}
+                                <span class="absolute top-3 right-3 text-xs bg-blue-600 text-white px-3 py-1 rounded-full shadow">${p.estado}</span>
                             </div>
-                            <!-- Detalles -->
-                            <div class="p-4">
-                                <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
-                                <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion || 'Sin ubicación'}</p>
-                                <p class="text-sm font-semibold text-blue-600 mb-4">💰 ${p.precio || 'Consultar precio'}</p>
-
-                                <!-- Historial de Prospectos -->
-                                <div class="border-t pt-3">
-                                    <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Historial de Prospectos (${prospectosDeEstaPropiedad.length})</h4>
-                                    <div class="space-y-2 max-h-40 overflow-y-auto">
-                                        ${prospectosDeEstaPropiedad.length === 0 ? 
-                                            `<p class="text-xs text-gray-400 italic">Ningún prospecto registrado para esta propiedad.</p>` :
-                                            prospectosDeEstaPropiedad.map(c => `
-                                                <div class="bg-white p-2 rounded border text-xs flex justify-between items-center">
-                                                    <div>
-                                                        <p class="font-semibold text-gray-800">${c.nombre}</p>
-                                                        <p class="text-gray-500">${c.telefono || 'Sin teléfono'} - ${c.email || ''}</p>
-                                                    </div>
-                                                    <span class="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-[10px]">${c.estado}</span>
-                                                </div>
-                                            `).join('')
-                                        }
+                            <div class="md:w-1/2 p-6 flex flex-col justify-between">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800 mb-2">${p.nombre}</h2>
+                                    <p class="text-sm text-gray-500 mb-1">📍 ${p.ubicacion}</p>
+                                    <p class="text-lg font-bold text-blue-600 mb-4">💰 ${p.precio}</p>
+                                    <div class="bg-gray-50 p-4 rounded-lg border mb-4">
+                                        <h4 class="text-xs font-bold text-gray-600 uppercase mb-1">Descripción</h4>
+                                        <p class="text-sm text-gray-700 whitespace-pre-line">${p.descripcion || 'Sin descripción detallada.'}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Historial de Prospectos exclusivo -->
+                        <div class="p-6 border-t bg-gray-50">
+                            <h3 class="text-base font-bold text-gray-800 mb-3">👥 Historial de Prospectos que consultaron (${prospectosDeEsta.length})</h3>
+                            <div class="space-y-2">
+                                ${prospectosDeEsta.length === 0 ? 
+                                    `<p class="text-sm text-gray-400 italic">Ningún prospecto registrado para esta propiedad todavía.</p>` :
+                                    prospectosDeEsta.map(c => `
+                                        <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">${c.nombre}</p>
+                                                <p class="text-xs text-gray-500">📞 ${c.telefono} | ✉️ ${c.email || 'Sin correo'}</p>
+                                            </div>
+                                            <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">${c.estado}</span>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                        </div>
                     </div>
                 `;
-            }).join('');
+                return;
+            }
+
+            // Guardar caché global para el botón de volver
+            window.propiedadesGlobalesCache = propiedades;
+            window.clientesGlobalesCache = clientes;
+
+            // Mostrar el listado completo del Catálogo
+            contenedor.innerHTML = `
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Catálogo de Propiedades Disponibles</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${propiedades.map(p => `
+                        <div onclick="propiedadSeleccionadaId = ${p.id}; renderizarCatalogo(propiedadesGlobalesCache, clientesGlobalesCache);" class="bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col justify-between">
+                            <div class="h-48 bg-gray-200 relative">
+                                ${p.imagen ? `<img src="${p.imagen}" class="w-full h-full object-cover">` : `<div class="flex items-center justify-center h-full text-gray-400 text-xs">Sin imagen</div>`}
+                                <span class="absolute top-2 right-2 text-xs bg-blue-600 text-white px-2 py-1 rounded shadow">${p.estado}</span>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-gray-800 text-base mb-1">${p.nombre}</h3>
+                                <p class="text-xs text-gray-500 mb-1">📍 ${p.ubicacion}</p>
+                                <p class="text-sm font-bold text-blue-600">💰 ${p.precio}</p>
+                            </div>
+                            <div class="px-4 py-3 bg-gray-50 border-t text-xs font-medium text-blue-600 flex justify-between items-center">
+                                <span>Ver detalles e historial</span>
+                                <span>→</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
 
-        // Función para guardar Propiedad (incluye campo imagen)
+        // Guardar Propiedad con Subida de Archivo Real a Supabase Storage
         async function guardarPropiedad(e) {
             e.preventDefault();
+            const btn = document.getElementById('btn-guardar-prop');
+            btn.innerText = "Subiendo imagen y guardando...";
+            btn.disabled = true;
+
             const nombre = document.getElementById('prop-nombre').value;
             const ubicacion = document.getElementById('prop-ubicacion').value;
             const precio = document.getElementById('prop-precio').value;
-            const imagen = document.getElementById('prop-imagen').value;
+            const descripcion = document.getElementById('prop-descripcion').value;
             const estado = document.getElementById('prop-estado').value;
+            const fileInput = document.getElementById('prop-file');
 
-            const { error } = await db.from('propiedades').insert([{ nombre, ubicacion, precio, imagen, estado }]);
-            
+            let imagenUrl = "";
+
+            // Si seleccionó un archivo, subirlo a Supabase Storage
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileName = `${Date.now()}-${file.name}`;
+                
+                const { data: uploadData, error: uploadError } = await db.storage
+                    .from('fotos-propiedades')
+                    .upload(fileName, file);
+
+                if (uploadError) {
+                    alert("Error al subir la imagen: " + uploadError.message);
+                    btn.innerText = "Guardar Propiedad";
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Obtener URL pública del archivo subido
+                const { data: publicURL } = db.storage
+                    .from('fotos-propiedades')
+                    .getPublicUrl(fileName);
+
+                imagenUrl = publicURL.publicUrl;
+            }
+
+            // Guardar registro en la tabla propiedades
+            const { error } = await db.from('propiedades').insert([{ 
+                nombre, ubicacion, precio, descripcion, imagen: imagenUrl, estado 
+            }]);
+
             if (error) {
                 alert('Error al guardar propiedad: ' + error.message);
             } else {
                 document.getElementById('form-propiedad').reset();
-                cargarSistema();
+                alert('¡Propiedad guardada con éxito!');
+                cambiarVista('catalogo');
             }
+
+            btn.innerText = "Guardar Propiedad";
+            btn.disabled = false;
         }
 
-        // Función para guardar Cliente vinculado a una propiedad
+        // Guardar Cliente vinculado
         async function guardarCliente(e) {
             e.preventDefault();
             const nombre = document.getElementById('cli-nombre').value;
@@ -187,7 +311,8 @@
                 alert('Error al guardar cliente: ' + error.message);
             } else {
                 document.getElementById('form-cliente').reset();
-                cargarSistema();
+                alert('¡Prospecto vinculado con éxito!');
+                cambiarVista('catalogo');
             }
         }
     </script>
