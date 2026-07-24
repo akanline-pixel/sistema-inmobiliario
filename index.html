@@ -16,7 +16,8 @@
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold text-gray-800">🏠 Sistema Inmobiliario</h1>
             <div class="flex gap-2">
-                <button onclick="cambiarVista('catalogo')" id="btn-catalogo" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition">Catálogo de Propiedades</button>
+                <button onclick="cambiarVista('catalogo')" id="btn-catalogo" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition">Catálogo</button>
+                <button onclick="cambiarVista('calendario')" id="btn-calendario" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">📅 Calendario Visitas</button>
                 <button onclick="cambiarVista('registros')" id="btn-registros" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Registros / Formularios</button>
             </div>
         </div>
@@ -28,12 +29,31 @@
         <section id="vista-catalogo" class="space-y-6">
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold text-gray-800">Catálogo de Propiedades</h2>
-                <p class="text-sm text-gray-500">Haz clic en cualquier propiedad para ver detalles y sus prospectos.</p>
+                <p class="text-sm text-gray-500">Haz clic en cualquier propiedad para ver sus detalles, editar o ver prospectos.</p>
+            </div>
+            <div id="grid-propiedades" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- VISTA: CALENDARIO MENSUAL DE VISITAS -->
+        <section id="vista-calendario" class="hidden space-y-6">
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border">
+                <h2 id="mes-anio-titulo" class="text-2xl font-extrabold text-blue-600">Calendario de Visitas</h2>
+                <div class="flex gap-2">
+                    <button onclick="cambiarMes(-1)" class="bg-gray-200 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">◀ Mes Anterior</button>
+                    <button onclick="irMesActual()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-blue-100 transition">Mes Actual</button>
+                    <button onclick="cambiarMes(1)" class="bg-gray-200 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">Mes Siguiente ▶</button>
+                </div>
+            </div>
+
+            <div id="debug-info" class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-xs text-yellow-800 font-mono">
+                Cargando estado de la base de datos...
             </div>
             
-            <!-- Contenedor dinámico de propiedades -->
-            <div id="grid-propiedades" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Se cargan por JavaScript -->
+            <div class="bg-white rounded-xl shadow-md border overflow-hidden p-4">
+                <div class="grid grid-cols-7 gap-2 text-center font-bold text-gray-600 text-sm mb-2">
+                    <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+                </div>
+                <div id="grid-calendario" class="grid grid-cols-7 gap-2"></div>
             </div>
         </section>
 
@@ -45,10 +65,17 @@
                 <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                     <h2 class="text-xl font-bold text-gray-800 mb-4">➕ Ingresar Nueva Propiedad</h2>
                     <form id="form-propiedad" onsubmit="guardarPropiedad(event)" class="space-y-4">
-                        <input type="hidden" id="propiedad-id">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Título</label>
-                            <input type="text" id="prop-titulo" required placeholder="Ej: Parcela Lomas Coloradas" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre / Título</label>
+                            <input type="text" id="prop-nombre" required placeholder="Ej: Parcela Lomas Coloradas" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Operación</label>
+                            <select id="prop-tipo-operacion" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white">
+                                <option value="Venta">Venta</option>
+                                <option value="Arriendo">Arriendo</option>
+                                <option value="Venta y Arriendo">Venta y Arriendo</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Ubicación</label>
@@ -59,21 +86,14 @@
                             <input type="text" id="prop-precio" required placeholder="Ej: $85.000.000 o $450.000" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Operación</label>
-                            <select id="prop-tipo" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white">
-                                <option value="Venta">Venta</option>
-                                <option value="Arriendo">Arriendo</option>
-                            </select>
-                        </div>
-                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Descripción</label>
                             <textarea id="prop-descripcion" rows="3" placeholder="Detalles de la propiedad..." class="w-full border border-gray-300 rounded-lg p-2.5 text-sm"></textarea>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Foto URL o Referencia</label>
-                            <input type="text" id="prop-imagen" placeholder="Enlace de la imagen" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Subir Imagen de la Propiedad</label>
+                            <input type="file" id="prop-imagen-archivo" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                         </div>
-                        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg shadow hover:bg-blue-700 transition">Guardar Propiedad</button>
+                        <button type="submit" id="btn-guardar-prop" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg shadow hover:bg-blue-700 transition">Guardar Propiedad</button>
                     </form>
                 </div>
 
@@ -101,13 +121,24 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Etapa Inicial del Prospecto</label>
-                            <select id="cli-estado" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white">
+                            <select id="cli-estado" onchange="verificarCampoVisita()" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white">
                                 <option value="Nuevo Lead / Contacto inicial">Nuevo Lead / Contacto inicial</option>
                                 <option value="Cualificación Financiera">Cualificación Financiera</option>
                                 <option value="Visita Agendada">Visita Agendada</option>
                                 <option value="Oferta / Reserva">Oferta / Reserva</option>
                                 <option value="Cierre / Promesa">Cierre / Promesa</option>
+                                <option value="Descartado / Sin Interés">Descartado / Sin Interés</option>
                             </select>
+                        </div>
+                        <div id="contenedor-fecha-visita" class="hidden bg-blue-50 p-3 rounded-lg border border-blue-200 space-y-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-blue-900 mb-1">Fecha de la Visita</label>
+                                <input type="date" id="cli-fecha-visita" class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-blue-900 mb-1">Hora de la Visita</label>
+                                <input type="time" id="cli-hora-visita" class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white">
+                            </div>
                         </div>
                         <button type="submit" class="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-lg shadow hover:bg-purple-700 transition">Guardar y Vincular Prospecto</button>
                     </form>
@@ -118,63 +149,76 @@
 
     </main>
 
-    <!-- Modal Dinámico para Detalles de Propiedad y Gestión de sus Prospectos -->
-    <div id="modal-detalle-cliente" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-        <!-- Contenido inyectado dinámicamente -->
-    </div>
+    <!-- Modal Dinámico -->
+    <div id="modal-detalle-cliente" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4"></div>
 
-    <!-- Script de Conexión y Lógica -->
     <script>
-        // ==========================================
-        // CONFIGURACIÓN DE SUPABASE 
-        // ==========================================
         const SUPABASE_URL = 'https://oazsrlgrvczcjxoksvff.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9henNybGdydmN6Y2p4b2tzdmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY4NjAsImV4cCI6MjEwMDQyMjg2MH0.WagZw_nk7tOCTa9I9jdyytDaIrzWXtYlzaItLECox3A';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Etapas oficiales para ventas
         const ETAPAS_VENTA = [
             'Nuevo Lead / Contacto inicial',
             'Cualificación Financiera',
             'Visita Agendada',
             'Oferta / Reserva',
-            'Cierre / Promesa'
+            'Cierre / Promesa',
+            'Descartado / Sin Interés'
         ];
 
-        // Cambiar vistas de la aplicación
+        let fechaCalendarioActual = new Date();
+
         function cambiarVista(vista) {
             const secCat = document.getElementById('vista-catalogo');
+            const secCal = document.getElementById('vista-calendario');
             const secReg = document.getElementById('vista-registros');
+            
             const btnCat = document.getElementById('btn-catalogo');
+            const btnCal = document.getElementById('btn-calendario');
             const btnReg = document.getElementById('btn-registros');
+
+            secCat.classList.add('hidden');
+            secCal.classList.add('hidden');
+            secReg.classList.add('hidden');
+            
+            btnCat.className = "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition";
+            btnCal.className = "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition";
+            btnReg.className = "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition";
 
             if (vista === 'catalogo') {
                 secCat.classList.remove('hidden');
-                secReg.classList.add('hidden');
                 btnCat.className = "bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition";
-                btnReg.className = "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition";
                 cargarPropiedades();
+            } else if (vista === 'calendario') {
+                secCal.classList.remove('hidden');
+                btnCal.className = "bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition";
+                renderizarCalendario();
             } else {
-                secCat.classList.add('hidden');
                 secReg.classList.remove('hidden');
                 btnReg.className = "bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition";
-                btnCat.className = "bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition";
                 cargarSelectorPropiedades();
             }
         }
 
-        // Cargar Propiedades en el Catálogo
+        function verificarCampoVisita(estadoSeleccionadoId = 'cli-estado', contenedorId = 'contenedor-fecha-visita') {
+            const estado = document.getElementById(estadoSeleccionadoId).value;
+            const contenedor = document.getElementById(contenedorId);
+            if (estado === 'Visita Agendada') {
+                contenedor.classList.remove('hidden');
+            } else {
+                contenedor.classList.add('hidden');
+            }
+        }
+
         async function cargarPropiedades() {
             const grid = document.getElementById('grid-propiedades');
             grid.innerHTML = '<p class="text-gray-400">Cargando catálogo...</p>';
-
             const { data, error } = await db.from('propiedades').select('*').order('id', { ascending: false });
             
             if (error) {
-                console.error('Error al cargar propiedades:', error);
-                grid.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}</p>`;
+                grid.innerHTML = `<p class="text-red-500 font-semibold">Error de conexión: ${error.message}</p>`;
                 return;
             }
 
@@ -184,31 +228,31 @@
             }
 
             grid.innerHTML = data.map(p => {
-                // Selector inteligente por si el campo se llama titulo, nombre, etc.
-                const tituloProp = p.titulo || p.nombre || p.direccion || 'Propiedad sin título';
-                const precioProp = p.precio || 'Consultar';
-                const ubicacionProp = p.ubicacion || p.comuna || 'Ubicación no especificada';
-                const tipoProp = p.tipo || p.operacion || 'Venta';
-                const descProp = p.descripcion || p.observaciones || 'Sin descripción detallada...';
+                const imgUrl = p.imagen || p.link_publicacion;
+                const nombreProp = p.nombre || p.titulo || 'Propiedad';
+                const tipoOperacion = p.operacion || 'Venta';
+                
+                let colorBadge = 'bg-purple-100 text-purple-700';
+                if (tipoOperacion === 'Arriendo') colorBadge = 'bg-green-100 text-green-700';
+                if (tipoOperacion === 'Venta y Arriendo') colorBadge = 'bg-amber-100 text-amber-800';
 
                 return `
                     <div onclick="abrirDetallePropiedad(${p.id})" class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 flex flex-col justify-between cursor-pointer hover:shadow-xl hover:border-blue-400 transition transform hover:-translate-y-1">
                         <div>
                             <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400 overflow-hidden">
-                                ${p.imagen || p.link_publicacion ? `<img src="${p.imagen || p.link_publicacion}" class="w-full h-full object-cover">` : 'Sin imagen'}
+                                ${imgUrl ? `<img src="${imgUrl}" class="w-full h-full object-cover">` : 'Sin imagen'}
                             </div>
                             <div class="p-4 space-y-2">
                                 <div class="flex justify-between items-start">
-                                    <h3 class="font-bold text-lg text-gray-800">${tituloProp}</h3>
-                                    <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded font-semibold">${tipoProp}</span>
+                                    <h3 class="font-bold text-lg text-gray-800">${nombreProp}</h3>
+                                    <span class="${colorBadge} text-xs px-2 py-1 rounded font-semibold">${tipoOperacion}</span>
                                 </div>
-                                <p class="text-sm text-gray-600">📍 ${ubicacionProp}</p>
-                                <p class="text-lg font-bold text-blue-600">$${precioProp}</p>
-                                <p class="text-xs text-gray-500 line-clamp-2">${descProp}</p>
+                                <p class="text-sm text-gray-600">📍 ${p.ubicacion || p.comuna || 'N/A'}</p>
+                                <p class="text-lg font-bold text-blue-600">$${p.precio || 'Consultar'}</p>
                             </div>
                         </div>
                         <div class="p-4 bg-gray-50 border-t flex justify-between items-center text-xs text-blue-600 font-semibold">
-                            <span>Ver prospectos y gestión</span>
+                            <span>Ver detalles, editar y prospectos</span>
                             <span>➔</span>
                         </div>
                     </div>
@@ -216,233 +260,369 @@
             }).join('');
         }
 
-        // Abrir Modal de Detalle de Propiedad y sus Prospectos Asociados
         async function abrirDetallePropiedad(propId) {
-            const { data: p, error } = await db.from('propiedades').select('*').eq('id', propId).single();
-            
-            if (error || !p) {
-                alert('No se pudo cargar la información de la propiedad.');
-                return;
-            }
+            const { data: p } = await db.from('propiedades').select('*').eq('id', propId).single();
+            const { data: clientesInteresados } = await db.from('clientes').select('*').eq('propiedad_id', propId);
 
-            const tituloProp = p.titulo || p.nombre || p.direccion || 'Propiedad';
+            const nombreProp = p.nombre || p.titulo || 'Propiedad';
+            const tipoOperacion = p.operacion || 'Venta';
 
-            // Buscar clientes interesados vinculados a esta propiedad
-            const { data: clientesInteresados } = await db.from('clientes').select('*').or(`propiedad_interes.eq."${tituloProp}",propiedad_interes.eq.${tituloProp}`);
-
-            let listaClientesHTML = '';
-            if (clientesInteresados && clientesInteresados.length > 0) {
-                listaClientesHTML = clientesInteresados.map(c => `
-                    <div class="p-3 mb-2 bg-gray-50 rounded-lg border flex justify-between items-center text-sm">
-                        <div>
-                            <p class="font-bold text-gray-800">👤 ${c.nombre}</p>
-                            <p class="text-xs text-gray-500">📞 ${c.telefono} | ✉️ ${c.email || 'Sin correo'}</p>
-                            <p class="text-xs mt-1">Etapa: <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">${c.estado_prospecto || c.estado || 'Nuevo Lead'}</span></p>
-                        </div>
-                        <button onclick="abrirGestionClienteModal(${c.id})" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-blue-700 transition">Gestionar Etapa</button>
+            let listaClientesHTML = clientesInteresados && clientesInteresados.length > 0 ? clientesInteresados.map(c => `
+                <div class="p-3 mb-2 bg-gray-50 rounded-lg border flex justify-between items-center text-sm">
+                    <div>
+                        <p class="font-bold text-gray-800">👤 ${c.nombre}</p>
+                        <p class="text-xs text-gray-500">📞 ${c.telefono} ${c.fecha_visita ? `| 🗓️ ${c.fecha_visita} ${c.hora_visita || ''}` : ''}</p>
+                        <p class="text-xs mt-1">Etapa: <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">${c.estado_prospecto || 'Nuevo Lead'}</span></p>
                     </div>
-                `).join('');
-            } else {
-                listaClientesHTML = '<p class="text-gray-400 text-sm italic py-2">No hay prospectos vinculados a esta propiedad todavía.</p>';
-            }
+                    <button onclick="abrirGestionClienteModal(${c.id}, ${propId})" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-semibold hover:bg-blue-700 transition">Gestionar</button>
+                </div>
+            `).join('') : '<p class="text-gray-400 text-sm italic py-2">No hay prospectos vinculados.</p>';
 
             const modal = document.getElementById('modal-detalle-cliente');
             modal.innerHTML = `
                 <div class="bg-white p-6 rounded-xl shadow-2xl max-w-2xl w-full relative max-h-[90vh] overflow-y-auto">
                     <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-lg">✕</button>
                     
-                    <h2 class="text-xl font-bold text-gray-800 mb-1">🏠 ${tituloProp}</h2>
-                    <p class="text-sm text-gray-600 mb-4">📍 <b>Ubicación:</b> ${p.ubicacion || p.comuna || 'N/A'} | 💰 <b>Precio:</b> $${p.precio || 'Consultar'} | <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">${p.tipo || 'Venta'}</span></p>
-
-                    <div class="mb-4 bg-gray-50 p-3 rounded-lg border text-sm text-gray-700">
-                        <p class="font-semibold text-gray-800 mb-1">Descripción:</p>
-                        <p>${p.descripcion || p.observaciones || 'Sin descripción registrada.'}</p>
+                    <div class="flex justify-between items-start mb-2 pr-6">
+                        <h2 class="text-xl font-bold text-gray-800">🏠 ${nombreProp} <span class="text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded ml-2">${tipoOperacion}</span></h2>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">📍 ${p.ubicacion || 'N/A'} | <b class="text-blue-600">$${p.precio || 'Consultar'}</b></p>
+                    
+                    <div class="bg-gray-50 p-3 rounded-lg border mb-4 text-sm text-gray-700">
+                        <p class="font-semibold text-xs text-gray-500 mb-1">DESCRIPCIÓN:</p>
+                        <p>${p.descripcion || 'Sin descripción registrada.'}</p>
                     </div>
 
-                    <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">👥 Prospectos Interesados en esta Propiedad</h3>
-                    <div class="space-y-1 mb-6">
-                        ${listaClientesHTML}
+                    <div class="mb-6">
+                        <button onclick="abrirFormularioEditarPropiedad(${p.id})" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-600 transition shadow">✏️ Modificar Datos de la Propiedad</button>
                     </div>
 
-                    <div class="flex justify-end gap-2">
-                        <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-300 transition">Cerrar</button>
-                    </div>
+                    <h3 class="font-bold text-gray-700 mb-2 border-b pb-1">👥 Prospectos Interesados</h3>
+                    <div class="space-y-1 mb-6">${listaClientesHTML}</div>
+
+                    <div class="flex justify-end"><button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-300 transition">Cerrar</button></div>
                 </div>
             `;
             modal.classList.remove('hidden');
         }
 
-        // Abrir Modal de Gestión e Historial de un Cliente Específico
-        async function abrirGestionClienteModal(clienteId) {
-            const { data: cliente, error: errCli } = await db.from('clientes').select('*').eq('id', clienteId).single();
-            const { data: historial, error: errHist } = await db.from('historial_estados').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false });
-
-            if (errCli) {
-                alert('No se pudo cargar la información del cliente.');
-                return;
-            }
-
-            let estadoActualCliente = cliente.estado_prospecto || cliente.estado || 'Nuevo Lead';
-            let opcionesHTML = ETAPAS_VENTA.map(etapa => {
-                const selected = estadoActualCliente === etapa ? 'selected' : '';
-                return `<option value="${etapa}" ${selected}>${etapa}</option>`;
-            }).join('');
-
-            let historialHTML = '';
-            if (historial && historial.length > 0) {
-                historialHTML = historial.map(h => {
-                    const fechaFormateada = new Date(h.created_at).toLocaleString('es-CL', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short'
-                    });
-                    return `
-                        <div class="p-3 mb-2 bg-gray-50 border-l-4 border-blue-500 rounded text-sm">
-                            <div class="flex justify-between text-xs text-gray-500 mb-1">
-                                <span><b>De:</b> ${h.estado_anterior} ➔ <b>A:</b> <span class="text-blue-600 font-semibold">${h.estado_nuevo}</span></span>
-                                <span>📅 ${fechaFormateada}</span>
-                            </div>
-                            ${h.observacion ? `<p class="text-gray-700 mt-1 italic">"${h.observacion}"</p>` : ''}
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                historialHTML = '<p class="text-gray-400 text-sm italic">No hay cambios registrados en el historial todavía.</p>';
-            }
-
+        async function abrirFormularioEditarPropiedad(propId) {
+            const { data: p } = await db.from('propiedades').select('*').eq('id', propId).single();
             const modal = document.getElementById('modal-detalle-cliente');
+
             modal.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full relative max-h-[90vh] overflow-y-auto z-50">
-                    <button onclick="abrirDetallePropiedadPorNombre('${cliente.propiedad_interes}')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-800 text-sm font-semibold">← Volver a la propiedad</button>
-                    <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-lg">✕</button>
+                <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full relative max-h-[90vh] overflow-y-auto">
+                    <button onclick="abrirDetallePropiedad(${propId})" class="absolute top-4 left-4 text-gray-500 text-sm font-semibold">← Volver</button>
+                    <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 font-bold text-lg">✕</button>
+
+                    <h2 class="text-xl font-bold text-gray-800 mt-6 mb-4">✏️ Modificar Propiedad</h2>
                     
-                    <h2 class="text-xl font-bold text-gray-800 mt-6 mb-1">👤 ${cliente.nombre}</h2>
-                    <p class="text-sm text-gray-600 mb-4">📞 ${cliente.telefono || 'Sin teléfono'} | ✉️ ${cliente.email || 'Sin correo'}</p>
-
-                    <!-- Selector de Etapa de Venta -->
-                    <div class="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                        <label class="block text-sm font-semibold text-blue-900 mb-2">Etapa Actual del Proceso de Venta:</label>
-                        <div class="flex gap-2">
-                            <select id="select-nuevo-estado" class="flex-1 border border-gray-300 rounded p-2 text-sm bg-white">
-                                ${opcionesHTML}
-                            </select>
-                            <button onclick="cambiarEstadoCliente(${cliente.id}, '${estadoActualCliente}', document.getElementById('select-nuevo-estado').value, '${cliente.propiedad_interes}')" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700 transition">
-                                Actualizar
-                            </button>
+                    <form onsubmit="actualizarPropiedad(event, ${propId})" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre / Título</label>
+                            <input type="text" id="edit-prop-nombre" value="${p.nombre || p.titulo || ''}" required class="w-full border rounded p-2 text-sm">
                         </div>
-                    </div>
-
-                    <!-- Bitácora de Historial -->
-                    <h3 class="font-bold text-gray-700 mb-3 border-b pb-1">📜 Historial de Cambios y Fechas</h3>
-                    <div class="space-y-2">
-                        ${historialHTML}
-                    </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Operación</label>
+                            <select id="edit-prop-operacion" class="w-full border rounded p-2 text-sm bg-white">
+                                <option value="Venta" ${p.operacion === 'Venta' ? 'selected' : ''}>Venta</option>
+                                <option value="Arriendo" ${p.operacion === 'Arriendo' ? 'selected' : ''}>Arriendo</option>
+                                <option value="Venta y Arriendo" ${p.operacion === 'Venta y Arriendo' ? 'selected' : ''}>Venta y Arriendo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Ubicación</label>
+                            <input type="text" id="edit-prop-ubicacion" value="${p.ubicacion || ''}" required class="w-full border rounded p-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Precio</label>
+                            <input type="text" id="edit-prop-precio" value="${p.precio || ''}" required class="w-full border rounded p-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Descripción</label>
+                            <textarea id="edit-prop-descripcion" rows="3" class="w-full border rounded p-2 text-sm">${p.descripcion || ''}</textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded shadow hover:bg-blue-700 transition">Guardar Cambios</button>
+                    </form>
                 </div>
             `;
         }
 
-        // Función auxiliar para volver a la ventana de la propiedad por su título
-        async function abrirDetallePropiedadPorNombre(tituloPropiedad) {
-            if (!tituloPropiedad) {
-                document.getElementById('modal-detalle-cliente').classList.add('hidden');
-                return;
-            }
-            const { data } = await db.from('propiedades').select('id').or(`titulo.eq."${tituloPropiedad}",nombre.eq."${tituloPropiedad}"`).single();
-            if (data) {
-                abrirDetallePropiedad(data.id);
+        async function actualizarPropiedad(e, propId) {
+            e.preventDefault();
+            const datosActualizados = {
+                nombre: document.getElementById('edit-prop-nombre').value,
+                operacion: document.getElementById('edit-prop-operacion').value,
+                ubicacion: document.getElementById('edit-prop-ubicacion').value,
+                precio: document.getElementById('edit-prop-precio').value,
+                descripcion: document.getElementById('edit-prop-descripcion').value
+            };
+
+            const { error } = await db.from('propiedades').update(datosActualizados).eq('id', propId);
+            if (!error) {
+                alert('¡Propiedad actualizada con éxito!');
+                abrirDetallePropiedad(propId);
+                cargarPropiedades();
             } else {
-                document.getElementById('modal-detalle-cliente').classList.add('hidden');
+                alert('Error al actualizar la propiedad: ' + error.message);
             }
         }
 
-        // Cambiar Estado de Cliente
-        async function cambiarEstadoCliente(clienteId, estadoActual, nuevoEstado, propiedadInteres) {
-            const observacion = prompt('Observación opcional para este cambio de etapa:');
-            try {
-                const { error: errUp } = await db.from('clientes').update({ estado_prospecto: nuevoEstado }).eq('id', clienteId);
-                if (errUp) throw errUp;
+        async function abrirGestionClienteModal(clienteId, propId) {
+            const { data: cliente } = await db.from('clientes').select('*').eq('id', clienteId).single();
+            const { data: historial } = await db.from('historial_estados').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false });
 
-                const { error: errHist } = await db.from('historial_estados').insert([{
+            let estadoActual = cliente.estado_prospecto || 'Nuevo Lead';
+            let opcionesHTML = ETAPAS_VENTA.map(e => `<option value="${e}" ${estadoActual === e ? 'selected' : ''}>${e}</option>`).join('');
+
+            let historialHTML = historial ? historial.map(h => `
+                <div class="p-2 mb-1 bg-gray-50 border-l-4 border-blue-500 rounded text-xs">
+                    <span><b>${h.estado_anterior} ➔ ${h.estado_nuevo}</b> (${new Date(h.created_at).toLocaleString('es-CL', {dateStyle: 'short', timeStyle: 'short'})})</span>
+                    ${h.observacion ? `<p class="italic text-gray-600">"${h.observacion}"</p>` : ''}
+                </div>
+            `).join('') : '';
+
+            const modal = document.getElementById('modal-detalle-cliente');
+            modal.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full relative max-h-[90vh] overflow-y-auto z-50">
+                    <button onclick="abrirDetallePropiedad(${propId})" class="absolute top-4 left-4 text-gray-500 text-sm font-semibold">← Volver</button>
+                    <button onclick="document.getElementById('modal-detalle-cliente').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 font-bold text-lg">✕</button>
+                    
+                    <h2 class="text-xl font-bold text-gray-800 mt-6 mb-1">👤 ${cliente.nombre}</h2>
+                    <p class="text-sm text-gray-600 mb-4">📞 ${cliente.telefono}</p>
+
+                    <div class="mb-4 bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-3">
+                        <label class="block text-sm font-semibold text-blue-900">Etapa de Venta:</label>
+                        <select id="select-nuevo-estado" onchange="verificarCampoVisita('select-nuevo-estado', 'contenedor-fecha-modal')" class="w-full border rounded p-2 text-sm bg-white">
+                            ${opcionesHTML}
+                        </select>
+                        <div id="contenedor-fecha-modal" class="${estadoActual === 'Visita Agendada' ? '' : 'hidden'} space-y-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-blue-900 mb-1">Fecha de Visita:</label>
+                                <input type="date" id="input-fecha-modal" value="${cliente.fecha_visita ? cliente.fecha_visita.split('T')[0] : ''}" class="w-full border rounded p-2 text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-blue-900 mb-1">Hora de Visita:</label>
+                                <input type="time" id="input-hora-modal" value="${cliente.hora_visita || ''}" class="w-full border rounded p-2 text-sm bg-white">
+                            </div>
+                        </div>
+                        <button onclick="cambiarEstadoCliente(${cliente.id}, '${estadoActual}', ${propId})" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-semibold hover:bg-blue-700 transition">Actualizar Estado</button>
+                    </div>
+
+                    <h3 class="font-bold text-gray-700 mb-2 border-b pb-1 text-sm">📜 Historial</h3>
+                    <div class="space-y-1">${historialHTML}</div>
+                </div>
+            `;
+        }
+
+        async function cambiarEstadoCliente(clienteId, estadoActual, propId) {
+            const nuevoEstado = document.getElementById('select-nuevo-estado').value;
+            const fechaVisita = document.getElementById('input-fecha-modal') ? document.getElementById('input-fecha-modal').value : null;
+            const horaVisita = document.getElementById('input-hora-modal') ? document.getElementById('input-hora-modal').value : null;
+            const observacion = prompt('Observación opcional para este cambio:');
+
+            let datosActualizar = { 
+                estado_prospecto: nuevoEstado,
+                fecha_visita: nuevoEstado === 'Visita Agendada' ? fechaVisita : null,
+                hora_visita: nuevoEstado === 'Visita Agendada' ? horaVisita : null
+            };
+
+            const { error: errUp } = await db.from('clientes').update(datosActualizar).eq('id', clienteId);
+            if (!errUp) {
+                await db.from('historial_estados').insert([{
                     cliente_id: clienteId,
-                    estado_anterior: estadoActual || 'Inicio',
+                    estado_anterior: estadoActual,
                     estado_nuevo: nuevoEstado,
                     tipo_proceso: 'venta',
                     observacion: observacion || ''
                 }]);
-                if (errHist) throw errHist;
-
-                alert('¡Estado actualizado y registrado en la bitácora!');
-                abrirDetallePropiedadPorNombre(propiedadInteres);
-            } catch (error) {
-                console.error('Error al cambiar estado:', error.message);
-                alert('No se pudo guardar el cambio.');
+                alert('¡Actualizado con éxito!');
+                abrirDetallePropiedad(propId);
+            } else {
+                alert('Error al actualizar.');
             }
         }
 
-        // Cargar opciones para el selector de propiedades en formulario de clientes
+        async function renderizarCalendario() {
+            const anio = fechaCalendarioActual.getFullYear();
+            const mes = fechaCalendarioActual.getMonth();
+            
+            const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            document.getElementById('mes-anio-titulo').innerText = `📅 Visitas de ${nombresMeses[mes]} ${anio}`;
+
+            const debugDiv = document.getElementById('debug-info');
+            debugDiv.innerHTML = `🔍 Consultando visitas...`;
+
+            const { data: clientesVisitas, error } = await db.from('clientes').select('*');
+
+            if (error) {
+                debugDiv.innerHTML = `❌ Error en Supabase: ${error.message}`;
+                return;
+            }
+
+            let totalConFecha = 0;
+            const visitasPorDia = {};
+
+            if (clientesVisitas) {
+                clientesVisitas.forEach(c => {
+                    if (c.fecha_visita) {
+                        totalConFecha++;
+                        const fechaStr = String(c.fecha_visita).trim().split('T')[0];
+                        const partes = fechaStr.split('-');
+                        
+                        if (partes.length === 3) {
+                            const anioVisita = parseInt(partes[0], 10);
+                            const mesVisita = parseInt(partes[1], 10) - 1;
+                            const diaVisita = parseInt(partes[2], 10);
+
+                            if (anioVisita === anio && mesVisita === mes) {
+                                if (!visitasPorDia[diaVisita]) visitasPorDia[diaVisita] = [];
+                                visitasPorDia[diaVisita].push(c);
+                            }
+                        }
+                    }
+                });
+            }
+
+            debugDiv.innerHTML = `✅ Total clientes en BD: <b>${clientesVisitas ? clientesVisitas.length : 0}</b> | Con fecha de visita: <b>${totalConFecha}</b> | Mes visible: <b>${nombresMeses[mes]} ${anio}</b>`;
+
+            const primerDiaSemana = new Date(anio, mes, 1).getDay();
+            const ajusteLunes = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1; 
+            const totalDiasMes = new Date(anio, mes + 1, 0).getDate();
+
+            const grid = document.getElementById('grid-calendario');
+            let html = '';
+
+            for (let i = 0; i < ajusteLunes; i++) {
+                html += `<div class="bg-gray-50 h-28 rounded-lg border border-gray-100"></div>`;
+            }
+
+            for (let dia = 1; dia <= totalDiasMes; dia++) {
+                let visitasDelDiaHTML = '';
+                if (visitasPorDia[dia]) {
+                    visitasDelDiaHTML = visitasPorDia[dia].map(v => {
+                        const hora = v.hora_visita ? v.hora_visita.substring(0, 5) : '';
+                        return `
+                            <div class="bg-blue-600 text-white text-xs p-1 rounded mb-1 truncate font-semibold shadow-sm" title="${hora} - ${v.nombre}">
+                                <b>${hora}</b> ${v.nombre}
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                html += `
+                    <div class="bg-white h-28 rounded-lg border border-gray-200 p-1.5 overflow-y-auto shadow-sm">
+                        <div class="text-xs font-bold text-gray-500 mb-1">${dia}</div>
+                        <div>${visitasDelDiaHTML}</div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function cambiarMes(delta) {
+            fechaCalendarioActual.setMonth(fechaCalendarioActual.getMonth() + delta);
+            renderizarCalendario();
+        }
+
+        function irMesActual() {
+            fechaCalendarioActual = new Date();
+            renderizarCalendario();
+        }
+
         async function cargarSelectorPropiedades() {
             const { data } = await db.from('propiedades').select('*');
             const select = document.getElementById('cli-propiedad');
             if (data) {
-                select.innerHTML = '<option value="">Seleccione propiedad...</option>' + data.map(p => {
-                    const nombreP = p.titulo || p.nombre || p.direccion || 'Propiedad sin nombre';
-                    return `<option value="${nombreP}">${nombreP}</option>`;
-                }).join('');
+                select.innerHTML = '<option value="">Seleccione propiedad...</option>' + data.map(p => `<option value="${p.id}">${p.nombre || p.titulo} (${p.operacion || 'Venta'})</option>`).join('');
             }
         }
 
-        // Guardar Propiedad nueva
         async function guardarPropiedad(e) {
             e.preventDefault();
-            const nuevaProp = {
-                titulo: document.getElementById('prop-titulo').value,
-                ubicacion: document.getElementById('prop-ubicacion').value,
-                precio: document.getElementById('prop-precio').value,
-                tipo: document.getElementById('prop-tipo').value,
-                descripcion: document.getElementById('prop-descripcion').value,
-                imagen: document.getElementById('prop-imagen').value
-            };
+            const btnGuardar = document.getElementById('btn-guardar-prop');
+            btnGuardar.disabled = true;
+            btnGuardar.innerText = 'Subiendo imagen y guardando...';
 
-            const { error } = await db.from('propiedades').insert([nuevaProp]);
-            if (error) {
-                alert('Error al guardar propiedad: ' + error.message);
-            } else {
+            try {
+                const archivoInput = document.getElementById('prop-imagen-archivo').files[0];
+                let imageUrl = '';
+
+                if (archivoInput) {
+                    const nombreArchivo = `${Date.now()}_${archivoInput.name.replace(/\s+/g, '_')}`;
+                    const { data: uploadData, error: uploadError } = await db.storage
+                        .from('fotos-propiedades')
+                        .upload(nombreArchivo, archivoInput);
+
+                    if (uploadError) {
+                        throw new Error('Error al subir la imagen: ' + uploadError.message);
+                    }
+
+                    const { data: publicUrlData } = db.storage
+                        .from('fotos-propiedades')
+                        .getPublicUrl(nombreArchivo);
+
+                    imageUrl = publicUrlData.publicUrl;
+                }
+
+                const nuevaProp = {
+                    nombre: document.getElementById('prop-nombre').value,
+                    operacion: document.getElementById('prop-tipo-operacion').value,
+                    ubicacion: document.getElementById('prop-ubicacion').value,
+                    precio: document.getElementById('prop-precio').value,
+                    descripcion: document.getElementById('prop-descripcion').value,
+                    imagen: imageUrl
+                };
+
+                const { error } = await db.from('propiedades').insert([nuevaProp]);
+                if (error) throw error;
+
                 alert('¡Propiedad guardada con éxito!');
                 document.getElementById('form-propiedad').reset();
                 cambiarVista('catalogo');
+            } catch (err) {
+                alert('Error al guardar: ' + err.message);
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.innerText = 'Guardar Propiedad';
             }
         }
 
-        // Guardar Cliente / Prospecto nuevo
         async function guardarCliente(e) {
             e.preventDefault();
+            const estado = document.getElementById('cli-estado').value;
+            const fechaVisita = document.getElementById('cli-fecha-visita').value;
+            const horaVisita = document.getElementById('cli-hora-visita').value;
+
             const nuevoCli = {
                 nombre: document.getElementById('cli-nombre').value,
                 telefono: document.getElementById('cli-telefono').value,
                 email: document.getElementById('cli-email').value,
-                propiedad_interes: document.getElementById('cli-propiedad').value,
-                estado_prospecto: document.getElementById('cli-estado').value
+                propiedad_id: document.getElementById('cli-propiedad').value,
+                estado_prospecto: estado,
+                fecha_visita: (estado === 'Visita Agendada' && fechaVisita) ? fechaVisita : null,
+                hora_visita: (estado === 'Visita Agendada' && horaVisita) ? horaVisita : null
             };
 
             const { data, error } = await db.from('clientes').insert([nuevoCli]).select();
-            if (error) {
-                alert('Error al guardar cliente: ' + error.message);
-            } else {
-                if (data && data[0]) {
-                    await db.from('historial_estados').insert([{
-                        cliente_id: data[0].id,
-                        estado_anterior: 'Inicio',
-                        estado_nuevo: nuevoCli.estado_prospecto,
-                        tipo_proceso: 'venta',
-                        observacion: 'Ingreso inicial del prospecto'
-                    }]);
-                }
-                alert('¡Prospecto registrado y vinculado con éxito!');
+            if (!error && data) {
+                await db.from('historial_estados').insert([{
+                    cliente_id: data[0].id,
+                    estado_anterior: 'Inicio',
+                    estado_nuevo: estado,
+                    tipo_proceso: 'venta',
+                    observacion: 'Ingreso inicial del prospecto'
+                }]);
+                alert('¡Prospecto registrado con éxito!');
                 document.getElementById('form-cliente').reset();
+                document.getElementById('contenedor-fecha-visita').classList.add('hidden');
                 cambiarVista('catalogo');
+            } else {
+                alert('Error al registrar prospecto.');
             }
         }
 
-        // Inicializar cargando el catálogo al abrir la página
         window.onload = () => {
             cargarPropiedades();
         };
